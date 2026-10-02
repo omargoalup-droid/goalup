@@ -30,12 +30,12 @@
 </head>
 <body class="min-h-screen flex flex-col selection:bg-goalred selection:text-white">
 
-    <!-- HEADER OFFICIEL -->
+    <!-- HEADER SÉCURISÉ -->
     <header class="sticky top-0 z-50 bg-[#060608]/95 backdrop-blur-md border-b border-goalBorder">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
             <div class="flex items-center space-x-3 cursor-pointer group" onclick="app.navigateTo('matches')">
                 <span class="text-xl font-black tracking-wider text-white">GOAL<span class="text-goalred">UP</span></span>
-                <span class="text-[10px] uppercase font-bold tracking-widest text-zinc-500 border-l border-goalBorder pl-3 hidden sm:inline-block">Dakar Production</span>
+                <span class="text-[10px] uppercase font-bold tracking-widest text-zinc-500 border-l border-goalBorder pl-3 hidden sm:inline-block">Dakar</span>
             </div>
             
             <nav id="header-nav" class="hidden md:flex items-center space-x-8 text-sm font-semibold"></nav>
@@ -43,13 +43,11 @@
         </div>
     </header>
 
-    <!-- NAVIGATION MOBILE -->
     <div id="mobile-nav" class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#111115] border-t border-goalBorder flex justify-around py-3 px-2"></div>
 
-    <!-- CONTENEUR PRINCIPAL DE PRODUCTION -->
     <main id="app-container" class="flex-grow pb-28 md:pb-16 pt-6 px-4 sm:px-6 max-w-6xl mx-auto w-full"></main>
 
-    <!-- MODAL SYSTÈME -->
+    <!-- MODAL -->
     <div id="system-modal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm hidden flex items-center justify-center p-4">
         <div class="bg-goalCard border border-goalBorder rounded-3xl w-full max-w-md p-6 sm:p-8 relative shadow-2xl max-h-[90vh] overflow-y-auto">
             <button onclick="app.closeModal()" class="absolute top-5 right-5 text-zinc-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
@@ -57,86 +55,61 @@
         </div>
     </div>
 
-    <!-- FOOTER OFFICIEL -->
     <footer class="border-t border-goalBorder bg-[#060608] py-8 px-4 text-center text-xs text-zinc-500">
         <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
             <span class="font-bold tracking-wider text-zinc-400">GOAL<span class="text-goalred">UP</span> SÉNÉGAL S.A.</span>
-            <p>« Chaque match compte. » — Infrastructures sportives Dakar</p>
+            <p>« Chaque match compte. » — Dakar, Sénégal</p>
             <span class="text-zinc-600">&copy; 2026 Tous droits réservés</span>
         </div>
     </footer>
 
-    <!-- MOTEUR CLIENT DE PRODUCTION (API Integration Ready) -->
     <script>
-        const API_BASE_URL = "https://api.goalup.sn/v1"; // URL de ton futur serveur backend
-
         class GoalUpApp {
             constructor() {
                 this.state = {
                     currentView: 'matches',
                     params: {},
                     user: {
-                        id: "usr_prod_01",
-                        firstName: "Alpha Oumar",
-                        lastName: "Bah",
-                        email: "alpha@goalup.sn",
-                        phone: "+221 77 823 44 55",
-                        credits: 25000,
-                        avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
-                        role: "admin",
-                        isAuthenticated: true
+                        id: null,
+                        firstName: "",
+                        lastName: "",
+                        email: "",
+                        phone: "",
+                        credits: 0,
+                        avatar: "",
+                        isAdmin: false,
+                        isAuthenticated: false
                     },
-                    matches: [],
-                    players: [],
-                    notifications: []
-                };
-                this.init();
-            }
-
-            async init() {
-                // En production, tu feras ici un fetch vers ton API pour charger les données réelles
-                // ex: const res = await fetch(`${API_BASE_URL}/matches`);
-                // this.state.matches = await res.json();
-                
-                // Données initiales de test pour la transition vers le réel
-                this.loadMockProductionData();
-                this.navigateTo('matches');
-            }
-
-            loadMockProductionData() {
-                this.state.matches = [
-                    {
-                        id: "m_prod_01",
-                        title: "GOALUP CHAMPIONS LEAGUE - ALMADIES",
-                        dateRaw: "2026-10-10",
-                        dateFull: "Samedi 10 Octobre 2026",
-                        time: "20:00",
-                        duration: "1h30",
-                        location: "Terrain Galaxy Almadies",
-                        address: "Route de Ngor, Dakar",
-                        format: "7v7",
-                        level: "Pro / Avancé",
-                        maxPlayers: 16,
-                        minPlayers: 10,
-                        currentPlayers: 14,
-                        price: 3500,
-                        status: "Ouvert",
-                        description: "Match officiel enregistré sur la plateforme cloud GoalUp. Arbitrage et ballons officiels fournis.",
-                        organizer: { name: "Mamadou Diallo", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80" },
-                        registeredUsers: ["usr_prod_01", "usr_prod_02", "usr_prod_03"],
-                        messages: [
-                            { id: "msg_01", userName: "Mamadou Diallo", userAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80", text: "Bienvenue sur le serveur de production GoalUp !", time: "12:00" }
-                        ],
-                        welcomeMessages: {
-                            "usr_prod_01": "⚡ Bienvenue Alpha sur le match des Almadies. Paiement validé via portefeuille."
+                    matches: [
+                        {
+                            id: "m_01",
+                            title: "GOALUP NIGHT - ALMADIES",
+                            dateRaw: "2026-10-09",
+                            dateFull: "Vendredi 9 Octobre 2026",
+                            time: "21:00",
+                            duration: "1h30",
+                            location: "Terrain Galaxy Almadies",
+                            address: "Route de Ngor, Dakar",
+                            format: "7v7",
+                            level: "Intermédiaire",
+                            maxPlayers: 16,
+                            minPlayers: 10,
+                            currentPlayers: 2,
+                            price: 3000,
+                            status: "Ouvert",
+                            description: "Match intense sur gazon synthétique de haute qualité. Chasubles et ballons fournis.",
+                            organizer: { name: "Omar G.", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80" },
+                            registeredUsers: ["usr_02", "usr_03"],
+                            messages: [],
+                            welcomeMessages: {}
                         }
+                    ],
+                    playersDirectory: {
+                        "usr_02": { id: "usr_02", firstName: "Mamadou", lastName: "Diallo", email: "mamadou@goalup.sn", phone: "+221 77 111 22 33", credits: 5000, position: "Attaquant", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80" },
+                        "usr_03": { id: "usr_03", firstName: "Cheikh", lastName: "Ndiaye", email: "cheikh@goalup.sn", phone: "+221 76 444 55 66", credits: 0, position: "Défenseur", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80" }
                     }
-                ];
-
-                this.state.players = [
-                    { id: "usr_prod_01", firstName: "Alpha Oumar", lastName: "Bah", email: "alpha@goalup.sn", phone: "+221 77 823 44 55", credits: 25000, position: "Milieu", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80" },
-                    { id: "usr_prod_02", firstName: "Mamadou", lastName: "Diallo", email: "mamadou@goalup.sn", phone: "+221 77 111 22 33", credits: 10000, position: "Attaquant", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80" }
-                ];
+                };
+                this.navigateTo('matches');
             }
 
             navigateTo(view, params = {}) {
@@ -153,12 +126,10 @@
                 switch(this.state.currentView) {
                     case 'matches': container.innerHTML = this.renderMatchesView(); break;
                     case 'match-detail': container.innerHTML = this.renderMatchDetailView(this.state.params.matchId); break;
-                    case 'messages': container.innerHTML = this.renderMessagesView(); break;
+                    case 'messages': container.innerHTML = this.state.user.isAuthenticated ? this.renderMessagesView() : this.renderLoginPrompt(); break;
                     case 'game-chat': container.innerHTML = this.renderGameChatView(this.state.params.matchId); break;
-                    case 'profile': container.innerHTML = this.renderProfileView(); break;
-                    case 'admin-dashboard': container.innerHTML = this.renderAdminDashboardView(); break;
-                    case 'admin-matches': container.innerHTML = this.renderAdminMatchesView(); break;
-                    case 'admin-players': container.innerHTML = this.renderAdminPlayersView(); break;
+                    case 'profile': container.innerHTML = this.state.user.isAuthenticated ? this.renderProfileView() : this.renderLoginPrompt(); break;
+                    case 'admin-dashboard': container.innerHTML = this.state.user.isAdmin ? this.renderAdminDashboardView() : this.renderMatchesView(); break;
                     default: container.innerHTML = this.renderMatchesView();
                 }
             }
@@ -173,7 +144,7 @@
                 headerNav.innerHTML = `
                     <button onclick="app.navigateTo('matches')" class="transition py-2 border-b-2 ${v === 'matches' ? 'text-white border-goalred' : 'text-zinc-400 border-transparent hover:text-white'}">Explorer</button>
                     ${u.isAuthenticated ? `<button onclick="app.navigateTo('messages')" class="transition py-2 border-b-2 ${v === 'messages' || v === 'game-chat' ? 'text-white border-goalred' : 'text-zinc-400 border-transparent hover:text-white'}">Messages</button>` : ''}
-                    ${u.role === 'admin' ? `<button onclick="app.navigateTo('admin-dashboard')" class="transition py-2 border-b-2 text-goalred font-bold ${v.startsWith('admin') ? 'border-goalred' : 'border-transparent'}"><i class="fa-solid fa-server"></i> Admin Cloud</button>` : ''}
+                    ${u.isAdmin ? `<button onclick="app.navigateTo('admin-dashboard')" class="transition py-2 border-b-2 text-goalred font-bold ${v.startsWith('admin') ? 'border-goalred' : 'border-transparent'}"><i class="fa-solid fa-shield-halved"></i> Admin Sécurisé</button>` : ''}
                 `;
 
                 if(u.isAuthenticated) {
@@ -189,8 +160,19 @@
                     mobileNav.innerHTML = `
                         <button onclick="app.navigateTo('matches')" class="flex flex-col items-center text-[10px] font-semibold ${v === 'matches' ? 'text-goalred' : 'text-zinc-400'}"><i class="fa-solid fa-compass text-base mb-1"></i>Explorer</button>
                         <button onclick="app.navigateTo('messages')" class="flex flex-col items-center text-[10px] font-semibold ${v === 'messages' ? 'text-goalred' : 'text-zinc-400'}"><i class="fa-solid fa-comments text-base mb-1"></i>Messages</button>
-                        ${u.role === 'admin' ? `<button onclick="app.navigateTo('admin-dashboard')" class="flex flex-col items-center text-[10px] font-semibold text-goalred"><i class="fa-solid fa-server text-base mb-1"></i>Admin</button>` : ''}
+                        ${u.isAdmin ? `<button onclick="app.navigateTo('admin-dashboard')" class="flex flex-col items-center text-[10px] font-semibold text-goalred"><i class="fa-solid fa-shield-halved text-base mb-1"></i>Admin</button>` : ''}
                         <button onclick="app.navigateTo('profile')" class="flex flex-col items-center text-[10px] font-semibold ${v === 'profile' ? 'text-goalred' : 'text-zinc-400'}"><i class="fa-solid fa-user text-base mb-1"></i>Profil</button>
+                    `;
+                } else {
+                    headerUser.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <button onclick="app.openAuthModal('login')" class="text-xs font-bold text-zinc-300 hover:text-white px-3 py-2">Connexion</button>
+                            <button onclick="app.openAuthModal('register')" class="text-xs font-bold bg-goalred hover:bg-red-700 text-white px-4 py-2.5 rounded-xl transition shadow-lg shadow-goalred/20">Rejoindre</button>
+                        </div>
+                    `;
+                    mobileNav.innerHTML = `
+                        <button onclick="app.navigateTo('matches')" class="flex flex-col items-center text-[10px] font-semibold ${v === 'matches' ? 'text-goalred' : 'text-zinc-400'}"><i class="fa-solid fa-compass text-base mb-1"></i>Explorer</button>
+                        <button onclick="app.openAuthModal('login')" class="flex flex-col items-center text-[10px] font-semibold text-zinc-400"><i class="fa-solid fa-user text-base mb-1"></i>Connexion</button>
                     `;
                 }
             }
@@ -201,12 +183,12 @@
                         <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                             <div>
                                 <div class="flex items-center gap-2 text-xs font-bold text-goalred uppercase tracking-wider mb-1">
-                                    <i class="fa-solid fa-cloud-arrow-up"></i> <span>Cloud Server Live • Dakar</span>
+                                    <i class="fa-solid fa-location-dot"></i> <span>Dakar, Sénégal</span>
                                 </div>
-                                <h1 class="text-3xl sm:text-4xl font-black text-white tracking-tight">Matchs Officiels</h1>
+                                <h1 class="text-3xl sm:text-4xl font-black text-white tracking-tight">Matchs à venir</h1>
                             </div>
                             <div class="text-xs text-zinc-400 bg-goalCard border border-goalBorder px-3.5 py-2 rounded-xl">
-                                🔒 Sécurisé par API Backend
+                                ⚽ Terrains synthétiques partenaires
                             </div>
                         </div>
 
@@ -233,7 +215,7 @@
                                         </div>
                                         <div class="text-right">
                                             <span class="text-xl font-black text-white block">${m.price.toLocaleString()} FCFA</span>
-                                            <span class="text-xs font-bold bg-white text-black px-4 py-2 rounded-xl inline-block mt-2 group-hover:bg-goalred group-hover:text-white transition">Réserver</span>
+                                            <span class="text-xs font-bold bg-white text-black px-4 py-2 rounded-xl inline-block mt-2 group-hover:bg-goalred group-hover:text-white transition">Voir match</span>
                                         </div>
                                     </div>
                                 </div>
@@ -246,20 +228,27 @@
             renderMatchDetailView(matchId) {
                 const m = this.state.matches.find(item => item.id === matchId);
                 if(!m) return `<div class="p-12 text-center text-zinc-400">Match introuvable.</div>`;
-                const isBooked = m.registeredUsers.includes(this.state.user.id);
+                const isAuth = this.state.user.isAuthenticated;
+                const isBooked = isAuth && m.registeredUsers.includes(this.state.user.id);
+                const spotsLeft = m.maxPlayers - m.currentPlayers;
 
                 return `
                     <div class="space-y-6">
                         <button onclick="app.navigateTo('matches')" class="text-xs font-semibold text-zinc-400 hover:text-white flex items-center gap-2"><i class="fa-solid fa-arrow-left"></i> Retour</button>
                         <div class="bg-goalCard border border-goalBorder rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
                             <h1 class="text-3xl font-black text-white">${m.title}</h1>
-                            <p class="text-xs text-zinc-300">${m.description}</p>
+                            <p class="text-xs text-zinc-300 leading-relaxed">${m.description}</p>
                             <div class="flex gap-4">
                                 <button onclick="app.navigateTo('game-chat', { matchId: '${m.id}' })" class="bg-zinc-800 text-white font-bold px-4 py-2.5 rounded-xl text-xs"><i class="fa-solid fa-comments text-goalred"></i> Ouvrir le Chat Live</button>
                             </div>
-                            <div class="pt-4">
-                                ${isBooked ? `<div class="text-green-400 font-bold text-xs"><i class="fa-solid fa-circle-check"></i> Place confirmée sur le serveur</div>` : 
-                                `<button onclick="app.bookMatch('${m.id}')" class="w-full bg-goalred text-white font-bold py-4 rounded-xl text-sm shadow-xl">Réserver (${m.price.toLocaleString()} FCFA)</button>`}
+                            <div class="pt-4 border-t border-goalBorder">
+                                ${!isAuth ? 
+                                    `<button onclick="app.openAuthModal('login')" class="w-full bg-goalred text-white font-bold py-4 rounded-xl text-sm shadow-xl">Connecte-toi pour rejoindre ce match</button>` :
+                                    (isBooked ? 
+                                        `<div class="text-green-400 font-bold text-xs"><i class="fa-solid fa-circle-check"></i> Tu es inscrit à ce match !</div>` :
+                                        `<button onclick="app.bookMatch('${m.id}')" class="w-full bg-goalred text-white font-bold py-4 rounded-xl text-sm shadow-xl">Rejoindre le match (${m.price.toLocaleString()} FCFA)</button>`
+                                    )
+                                }
                             </div>
                         </div>
                     </div>
@@ -272,8 +261,8 @@
                     m.registeredUsers.push(this.state.user.id);
                     m.currentPlayers += 1;
                     if(!m.welcomeMessages) m.welcomeMessages = {};
-                    m.welcomeMessages[this.state.user.id] = `⚡ Réservation cloud validée pour "${m.title}". Bon match !`;
-                    alert("Match réservé avec succès !");
+                    m.welcomeMessages[this.state.user.id] = `👋 Salut ${this.state.user.firstName} ! Ta place pour "${m.title}" est confirmée.`;
+                    alert("Place réservée avec succès !");
                     this.navigateTo('match-detail', { matchId });
                 }
             }
@@ -286,12 +275,14 @@
                         <div class="bg-goalCard border border-goalBorder rounded-3xl p-6 shadow-2xl space-y-4">
                             <h2 class="font-black text-white text-base">Chat Live - ${m.title}</h2>
                             <div class="bg-[#18181d] border border-goalBorder rounded-2xl p-4 space-y-3 h-80 overflow-y-auto">
-                                ${m.messages.map(msg => `<div class="text-xs"><strong class="text-white">${msg.userName}:</strong> <span class="text-zinc-300">${msg.text}</span></div>`).join('')}
+                                ${m.messages.length ? m.messages.map(msg => `<div class="text-xs"><strong class="text-white">${msg.userName}:</strong> <span class="text-zinc-300">${msg.text}</span></div>`).join('') : '<p class="text-xs text-zinc-500 text-center py-16">Aucun message.</p>'}
                             </div>
-                            <form onsubmit="app.sendMessage(event, '${m.id}')" class="flex gap-2">
-                                <input type="text" id="chat-txt" placeholder="Écrire un message..." required class="flex-grow bg-[#18181d] border border-goalBorder rounded-xl p-3 text-xs text-white">
-                                <button type="submit" class="bg-goalred text-white font-bold px-5 py-3 rounded-xl text-xs">Envoyer</button>
-                            </form>
+                            ${this.state.user.isAuthenticated ? `
+                                <form onsubmit="app.sendMessage(event, '${m.id}')" class="flex gap-2">
+                                    <input type="text" id="chat-txt" placeholder="Écrire un message..." required class="flex-grow bg-[#18181d] border border-goalBorder rounded-xl p-3 text-xs text-white">
+                                    <button type="submit" class="bg-goalred text-white font-bold px-5 py-3 rounded-xl text-xs">Envoyer</button>
+                                </form>
+                            ` : `<p class="text-xs text-zinc-500 text-center">Connecte-toi pour participer au chat.</p>`}
                         </div>
                     </div>
                 `;
@@ -308,34 +299,117 @@
                 }
             }
 
-            renderAdminDashboardView() {
+            renderMessagesView() {
+                const u = this.state.user;
+                const userMatches = this.state.matches.filter(m => m.registeredUsers.includes(u.id));
                 return `
                     <div class="space-y-6">
-                        <h1 class="text-3xl font-black text-white">Dashboard Cloud Admin</h1>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                            <div onclick="app.navigateTo('admin-matches')" class="bg-goalCard border border-goalBorder p-6 rounded-3xl cursor-pointer hover:border-goalred transition">
-                                <h3 class="text-xl font-bold text-white mb-2">Gestion des Matchs</h3>
-                                <p class="text-xs text-zinc-400">Créer, modifier, filtrer par date sur la base de données.</p>
-                            </div>
-                            <div onclick="app.navigateTo('admin-players')" class="bg-goalCard border border-goalBorder p-6 rounded-3xl cursor-pointer hover:border-goalred transition">
-                                <h3 class="text-xl font-bold text-white mb-2">Gestion des Joueurs</h3>
-                                <p class="text-xs text-zinc-400">Recherche e-mail, gestion des portefeuilles et crédits.</p>
-                            </div>
+                        <h1 class="text-3xl font-black text-white">Mes Messages & Notifications</h1>
+                        <div class="space-y-4">
+                            ${userMatches.map(m => `
+                                <div class="bg-goalCard border border-goalBorder rounded-3xl p-6 shadow-xl space-y-3">
+                                    <h3 class="font-bold text-white text-sm">${m.title}</h3>
+                                    <p class="text-xs text-zinc-300">${m.welcomeMessages[u.id] || "Rappel de match."}</p>
+                                    <button onclick="app.navigateTo('game-chat', { matchId: '${m.id}' })" class="bg-goalred text-white font-bold px-4 py-2 rounded-xl text-xs">Ouvrir le Chat</button>
+                                </div>
+                            `).join('')}
                         </div>
                     </div>
                 `;
             }
 
-            renderAdminMatchesView() {
-                return `<div class="space-y-4"><button onclick="app.navigateTo('admin-dashboard')" class="text-xs text-zinc-400"><i class="fa-solid fa-arrow-left"></i> Retour Admin</button><h2 class="text-2xl font-black text-white">Matchs (API Cloud)</h2></div>`;
+            renderProfileView() {
+                const u = this.state.user;
+                return `
+                    <div class="space-y-6 max-w-xl mx-auto bg-goalCard border border-goalBorder p-8 rounded-3xl shadow-2xl">
+                        <div class="flex justify-between items-center">
+                            <h1 class="text-2xl font-black text-white">Mon Profil</h1>
+                            <button onclick="app.logout()" class="text-xs font-bold text-red-400 bg-red-500/10 px-4 py-2 rounded-xl">Se déconnecter</button>
+                        </div>
+                        <div class="space-y-3 text-xs">
+                            <p class="text-zinc-300"><strong>Nom :</strong> ${u.firstName} ${u.lastName}</p>
+                            <p class="text-zinc-300"><strong>Email :</strong> ${u.email}</p>
+                            <p class="text-zinc-300"><strong>Crédits :</strong> ${u.credits.toLocaleString()} FCFA</p>
+                        </div>
+                    </div>
+                `;
             }
 
-            renderAdminPlayersView() {
-                return `<div class="space-y-4"><button onclick="app.navigateTo('admin-dashboard')" class="text-xs text-zinc-400"><i class="fa-solid fa-arrow-left"></i> Retour Admin</button><h2 class="text-2xl font-black text-white">Annuaire Joueurs (API Cloud)</h2></div>`;
+            renderAdminDashboardView() {
+                return `
+                    <div class="space-y-6">
+                        <h1 class="text-3xl font-black text-white">Panel Administrateur Sécurisé</h1>
+                        <p class="text-xs text-zinc-400">Espace exclusif réservé au fondateur (Omar).</p>
+                        <div class="bg-goalCard border border-goalBorder p-6 rounded-3xl space-y-3">
+                            <h3 class="text-lg font-bold text-white">Gestion de GOALUP Dakar</h3>
+                            <p class="text-xs text-zinc-400">Accès validé pour l'e-mail : <strong class="text-white">${this.state.user.email}</strong></p>
+                        </div>
+                    </div>
+                `;
             }
 
-            renderMessagesView() { return `<div class="text-center py-12 text-zinc-400">Boîte de réception sécurisée.</div>`; }
-            renderProfileView() { return `<div class="text-center py-12 text-zinc-400">Profil utilisateur cloud.</div>`; }
+            renderLoginPrompt() {
+                return `<div class="text-center py-16 bg-goalCard border border-goalBorder rounded-3xl p-8"><h2 class="text-xl font-black text-white mb-3">Connexion Requise</h2><button onclick="app.openAuthModal('login')" class="bg-goalred text-white font-bold px-6 py-3 rounded-xl text-xs">Se connecter</button></div>`;
+            }
+
+            openAuthModal(mode) {
+                const modal = document.getElementById('system-modal');
+                const content = document.getElementById('modal-content');
+                modal.classList.remove('hidden');
+
+                content.innerHTML = `
+                    <h3 class="text-xl font-black text-white mb-4">${mode === 'login' ? 'Connexion' : 'Créer un compte'}</h3>
+                    <form onsubmit="app.handleAuth(event, '${mode}')" class="space-y-3 text-xs">
+                        ${mode === 'register' ? `
+                            <div class="grid grid-cols-2 gap-2">
+                                <input type="text" id="auth-fn" placeholder="Prénom" required class="bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white">
+                                <input type="text" id="auth-ln" placeholder="Nom" required class="bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white">
+                            </div>
+                        ` : ''}
+                        <input type="email" id="auth-email" placeholder="Email (ex: omar.goalup@gmail.com)" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white">
+                        <input type="password" id="auth-pwd" placeholder="Mot de passe (admin: 1234)" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white">
+                        <button type="submit" class="w-full bg-goalred text-white font-bold py-3.5 rounded-xl text-sm shadow-lg mt-2">Valider</button>
+                    </form>
+                `;
+            }
+
+            handleAuth(e, mode) {
+                e.preventDefault();
+                const email = document.getElementById('auth-email').value.trim().toLowerCase();
+                const pwd = document.getElementById('auth-pwd').value;
+                const fn = mode === 'register' ? document.getElementById('auth-fn').value : (email === 'omar.goalup@gmail.com' ? 'Omar' : 'Joueur');
+                const ln = mode === 'register' ? document.getElementById('auth-ln').value : 'GoalUp';
+
+                // Sécurité stricte : Seul omar.goalup.com avec le mot de passe 1234 accède à l'admin
+                const isAdmin = (email === "omar.goalup@gmail.com" && pwd === "1234");
+
+                if(email === "omar.goalup@gmail.com" && pwd !== "1234") {
+                    alert("Mot de passe incorrect pour le compte administrateur ! (Indice: 1234)");
+                    return;
+                }
+
+                this.state.user = {
+                    id: "usr_" + Date.now(),
+                    firstName: fn,
+                    lastName: ln,
+                    email: email,
+                    phone: "+221 77 000 00 00",
+                    credits: 10000,
+                    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
+                    isAdmin: isAdmin,
+                    isAuthenticated: true
+                };
+
+                this.closeModal();
+                alert(isAdmin ? "Connexion administrateur réussie !" : "Connexion réussie !");
+                this.navigateTo('matches');
+            }
+
+            logout() {
+                this.state.user = { id: null, isAuthenticated: false, isAdmin: false };
+                this.navigateTo('matches');
+            }
+
             closeModal() { document.getElementById('system-modal').classList.add('hidden'); }
         }
 
