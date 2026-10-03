@@ -15,7 +15,9 @@
                         goalDark: '#060608',
                         goalCard: '#111115',
                         goalCardHover: '#18181d',
-                        goalBorder: '#22222b'
+                        goalBorder: '#22222b',
+                        waveBlue: '#1EBBEE',
+                        orangeMoney: '#FF6600'
                     }
                 }
             }
@@ -74,8 +76,8 @@
                         firstName: "",
                         lastName: "",
                         email: "",
-                        phone: "",
-                        credits: 0,
+                        phone: "+221 77 000 00 00",
+                        credits: 10000,
                         avatar: "",
                         isAdmin: false,
                         isAuthenticated: false
@@ -105,8 +107,7 @@
                         }
                     ],
                     playersDirectory: {
-                        "usr_02": { id: "usr_02", firstName: "Mamadou", lastName: "Diallo", email: "mamadou@goalup.sn", phone: "+221 77 111 22 33", credits: 5000, position: "Attaquant", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80" },
-                        "usr_03": { id: "usr_03", firstName: "Cheikh", lastName: "Ndiaye", email: "cheikh@goalup.sn", phone: "+221 76 444 55 66", credits: 0, position: "Défenseur", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80" }
+                        "usr_02": { id: "usr_02", firstName: "Mamadou", lastName: "Diallo", email: "mamadou@goalup.sn", phone: "+221 77 111 22 33", credits: 5000, position: "Attaquant", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80" }
                     }
                 };
                 this.navigateTo('matches');
@@ -130,12 +131,11 @@
                     case 'game-chat': container.innerHTML = this.renderGameChatView(this.state.params.matchId); break;
                     case 'profile': container.innerHTML = this.state.user.isAuthenticated ? this.renderProfileView() : this.renderLoginPrompt(); break;
                     
-                    // Vues Admin Sécurisées et Interactives
                     case 'admin-dashboard': container.innerHTML = this.state.user.isAdmin ? this.renderAdminDashboardView() : this.renderMatchesView(); break;
                     case 'admin-matches': container.innerHTML = this.state.user.isAdmin ? this.renderAdminMatchesView() : this.renderMatchesView(); break;
                     case 'admin-match-edit': container.innerHTML = this.state.user.isAdmin ? this.renderAdminMatchEditView(this.state.params.matchId) : this.renderMatchesView(); break;
                     case 'admin-players': container.innerHTML = this.state.user.isAdmin ? this.renderAdminPlayersView() : this.renderMatchesView(); break;
-                    case 'admin-player-detail': container.innerHTML = this.state.user.isAdmin ? this.renderAdminPlayerDetailView(this.state.params.playerId) : this.renderMatchesView(); break;
+                    case 'admin-player-edit': container.innerHTML = this.state.user.isAdmin ? this.renderAdminPlayerEditView(this.state.params.playerId) : this.renderMatchesView(); break;
 
                     default: container.innerHTML = this.renderMatchesView();
                 }
@@ -160,7 +160,7 @@
                             <button onclick="app.navigateTo('profile')" class="flex items-center gap-2.5 bg-goalCard hover:bg-goalCardHover border border-goalBorder px-3.5 py-1.5 rounded-full transition group">
                                 <img src="${u.avatar}" class="w-8 h-8 rounded-full object-cover border border-goalred">
                                 <span class="text-xs font-bold text-white group-hover:text-goalred transition hidden sm:inline">${u.firstName}</span>
-                                <span class="text-[10px] text-goalred font-extrabold bg-goalred/10 px-2 py-0.5 rounded-md ml-1">${u.credits.toLocaleString()} F</span>
+                                <span class="text-[10px] ${u.isAdmin ? 'text-goalred font-black' : 'text-zinc-400'} bg-goalred/10 px-2 py-0.5 rounded-md ml-1">${u.isAdmin ? 'ADMIN' : u.credits.toLocaleString() + ' F'}</span>
                             </button>
                         </div>
                     `;
@@ -195,7 +195,7 @@
                                 <h1 class="text-3xl sm:text-4xl font-black text-white tracking-tight">Matchs à venir</h1>
                             </div>
                             <div class="text-xs text-zinc-400 bg-goalCard border border-goalBorder px-3.5 py-2 rounded-xl">
-                                ⚽ Terrains synthétiques partenaires
+                                ⚽ Paiement mobile Wave & Orange Money
                             </div>
                         </div>
 
@@ -238,8 +238,9 @@
             renderMatchDetailView(matchId) {
                 const m = this.state.matches.find(item => item.id === matchId);
                 if(!m) return `<div class="p-12 text-center text-zinc-400">Match introuvable.</div>`;
-                const isAuth = this.state.user.isAuthenticated;
-                const isBooked = isAuth && m.registeredUsers.includes(this.state.user.id);
+                const u = this.state.user;
+                const isAuth = u.isAuthenticated;
+                const isBooked = isAuth && m.registeredUsers.includes(u.id);
 
                 return `
                     <div class="space-y-6">
@@ -252,10 +253,10 @@
                             </div>
                             <div class="pt-4 border-t border-goalBorder">
                                 ${!isAuth ? 
-                                    `<button onclick="app.openAuthModal('login')" class="w-full bg-goalred text-white font-bold py-4 rounded-xl text-sm shadow-xl">Connecte-toi pour rejoindre ce match</button>` :
+                                    `<button onclick="app.openAuthModal('login')" class="w-full bg-goalred text-white font-bold py-4 rounded-xl text-sm shadow-xl">Connecte-toi pour réserver</button>` :
                                     (isBooked ? 
                                         `<div class="text-green-400 font-bold text-xs"><i class="fa-solid fa-circle-check"></i> Tu es inscrit à ce match !</div>` :
-                                        `<button onclick="app.bookMatch('${m.id}')" class="w-full bg-goalred text-white font-bold py-4 rounded-xl text-sm shadow-xl">Rejoindre le match (${m.price.toLocaleString()} FCFA)</button>`
+                                        `<button onclick="app.openPaymentModal('${m.id}')" class="w-full bg-goalred text-white font-bold py-4 rounded-xl text-sm shadow-xl">${u.isAdmin ? 'Inscrire (Fondateur Gratuit)' : 'Payer & Réserver (' + m.price.toLocaleString() + ' FCFA)'}</button>`
                                     )
                                 }
                             </div>
@@ -264,14 +265,65 @@
                 `;
             }
 
-            bookMatch(matchId) {
+            // --- SYSTÈME DE PAIEMENT SÉNÉGAL (WAVE & ORANGE MONEY) ---
+            openPaymentModal(matchId) {
                 const m = this.state.matches.find(item => item.id === matchId);
-                if(m && !m.registeredUsers.includes(this.state.user.id)) {
-                    m.registeredUsers.push(this.state.user.id);
+                const u = this.state.user;
+
+                if(u.isAdmin) {
+                    this.confirmBooking(matchId);
+                    return;
+                }
+
+                const modal = document.getElementById('system-modal');
+                const content = document.getElementById('modal-content');
+                modal.classList.remove('hidden');
+
+                content.innerHTML = `
+                    <div class="space-y-5 text-center">
+                        <h3 class="text-xl font-black text-white">Validation du Paiement</h3>
+                        <p class="text-xs text-zinc-400">Match : <strong class="text-white">${m.title}</strong><br>Montant à régler : <strong class="text-goalred text-sm">${m.price.toLocaleString()} FCFA</strong></p>
+                        
+                        <div class="space-y-3 pt-2">
+                            <button onclick="app.processMobilePayment('${m.id}', 'Wave')" class="w-full bg-[#1EBBEE] hover:bg-sky-400 text-black font-extrabold py-3.5 rounded-2xl flex items-center justify-center gap-3 transition shadow-lg text-sm">
+                                <i class="fa-solid fa-mobile-screen-button text-base"></i> Payer avec WAVE
+                            </button>
+                            <button onclick="app.processMobilePayment('${m.id}', 'Orange Money')" class="w-full bg-[#FF6600] hover:bg-orange-600 text-white font-extrabold py-3.5 rounded-2xl flex items-center justify-center gap-3 transition shadow-lg text-sm">
+                                <i class="fa-solid fa-wallet text-base"></i> Payer avec ORANGE MONEY
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            processMobilePayment(matchId, provider) {
+                const m = this.state.matches.find(item => item.id === matchId);
+                const modal = document.getElementById('modal-content');
+
+                modal.innerHTML = `
+                    <div class="space-y-6 text-center py-6">
+                        <div class="w-12 h-12 border-4 border-goalred border-t-transparent rounded-full animate-spin mx-auto"></div>
+                        <h3 class="text-lg font-bold text-white">Connexion à ${provider}...</h3>
+                        <p class="text-xs text-zinc-400">Veuillez valider la demande de paiement sur votre téléphone au <strong>${this.state.user.phone}</strong></p>
+                    </div>
+                `;
+
+                setTimeout(() => {
+                    this.closeModal();
+                    this.confirmBooking(matchId);
+                }, 2500);
+            }
+
+            confirmBooking(matchId) {
+                const m = this.state.matches.find(item => item.id === matchId);
+                const u = this.state.user;
+
+                if(!m.registeredUsers.includes(u.id)) {
+                    m.registeredUsers.push(u.id);
                     m.currentPlayers += 1;
                     if(!m.welcomeMessages) m.welcomeMessages = {};
-                    m.welcomeMessages[this.state.user.id] = `👋 Salut ${this.state.user.firstName} ! Ta place pour "${m.title}" est confirmée.`;
-                    alert("Place réservée avec succès !");
+                    m.welcomeMessages[u.id] = `👋 Salut ${u.firstName} ! Paiement validé. Ta place pour "${m.title}" est confirmée.`;
+                    alert("Paiement réussi ! Votre place est confirmée.");
                     this.navigateTo('match-detail', { matchId });
                 }
             }
@@ -335,21 +387,55 @@
                             <h1 class="text-2xl font-black text-white">Mon Profil</h1>
                             <button onclick="app.logout()" class="text-xs font-bold text-red-400 bg-red-500/10 px-4 py-2 rounded-xl">Se déconnecter</button>
                         </div>
+
+                        <div class="flex items-center gap-5 pb-6 border-b border-goalBorder">
+                            <img src="${u.avatar}" class="w-20 h-20 rounded-full object-cover border-2 border-goalred">
+                            <div class="space-y-2">
+                                <h3 class="text-lg font-bold text-white">${u.firstName} ${u.lastName}</h3>
+                                <button onclick="app.openChangeAvatarModal()" class="bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl">Changer la photo</button>
+                            </div>
+                        </div>
+
                         <div class="space-y-3 text-xs">
-                            <p class="text-zinc-300"><strong>Nom :</strong> ${u.firstName} ${u.lastName}</p>
                             <p class="text-zinc-300"><strong>Email :</strong> ${u.email}</p>
-                            <p class="text-zinc-300"><strong>Crédits :</strong> ${u.credits.toLocaleString()} FCFA</p>
+                            <p class="text-zinc-300"><strong>Téléphone :</strong> ${u.phone}</p>
+                            <p class="text-zinc-300"><strong>Statut :</strong> ${u.isAdmin ? 'Fondateur / Administrateur (Accès total)' : 'Membre'}</p>
                         </div>
                     </div>
                 `;
             }
 
-            // --- ESPACE ADMIN WEB RÉEL ET COMPLET ---
+            openChangeAvatarModal() {
+                const modal = document.getElementById('system-modal');
+                const content = document.getElementById('modal-content');
+                modal.classList.remove('hidden');
+
+                content.innerHTML = `
+                    <h3 class="text-xl font-black text-white mb-4">Changer la photo de profil</h3>
+                    <form onsubmit="app.saveAvatar(event)" class="space-y-4 text-xs">
+                        <div>
+                            <label class="block text-zinc-400 mb-1">Lien internet de l'image (URL)</label>
+                            <input type="url" id="new-avatar-url" placeholder="https://images.unsplash.com/..." required value="${this.state.user.avatar}" class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white">
+                        </div>
+                        <button type="submit" class="w-full bg-goalred text-white font-bold py-3.5 rounded-xl shadow-lg">Enregistrer</button>
+                    </form>
+                `;
+            }
+
+            saveAvatar(e) {
+                e.preventDefault();
+                const newUrl = document.getElementById('new-avatar-url').value;
+                this.state.user.avatar = newUrl;
+                this.closeModal();
+                alert("Photo de profil mise à jour !");
+                this.navigateTo('profile');
+            }
+
             renderAdminDashboardView() {
                 return `
                     <div class="space-y-8">
                         <div>
-                            <span class="text-xs text-goalred font-bold uppercase tracking-wider"><i class="fa-solid fa-shield-halved"></i> Espace Fondateur • Sécurisé</span>
+                            <span class="text-xs text-goalred font-bold uppercase tracking-wider"><i class="fa-solid fa-shield-halved"></i> Espace Fondateur • Contrôle Total</span>
                             <h1 class="text-3xl font-black text-white mt-1">Dashboard Admin Web</h1>
                         </div>
 
@@ -357,12 +443,12 @@
                             <div onclick="app.navigateTo('admin-matches')" class="bg-goalCard border border-goalBorder hover:border-goalred rounded-3xl p-6 cursor-pointer transition group shadow-xl">
                                 <div class="w-12 h-12 rounded-2xl bg-goalred/10 flex items-center justify-center text-goalred text-xl mb-4 group-hover:scale-110 transition"><i class="fa-solid fa-futbol"></i></div>
                                 <h3 class="text-xl font-bold text-white mb-2">Section Matchs</h3>
-                                <p class="text-xs text-zinc-400 leading-relaxed">Créer des matchs, filtrer par date, annuler des sessions, modifier les détails et gérer la feuille de match.</p>
+                                <p class="text-xs text-zinc-400 leading-relaxed">Créer, modifier, filtrer par date et annuler des sessions de match à Dakar.</p>
                             </div>
                             <div onclick="app.navigateTo('admin-players')" class="bg-goalCard border border-goalBorder hover:border-goalred rounded-3xl p-6 cursor-pointer transition group shadow-xl">
                                 <div class="w-12 h-12 rounded-2xl bg-goalred/10 flex items-center justify-center text-goalred text-xl mb-4 group-hover:scale-110 transition"><i class="fa-solid fa-users"></i></div>
                                 <h3 class="text-xl font-bold text-white mb-2">Section Joueurs</h3>
-                                <p class="text-xs text-zinc-400 leading-relaxed">Rechercher des utilisateurs par e-mail, consulter leur profil, ajouter ou retirer des crédits de leur portefeuille.</p>
+                                <p class="text-xs text-zinc-400 leading-relaxed">Modifier les profils des utilisateurs, ajuster leurs crédits ou les bannir définitivement.</p>
                             </div>
                         </div>
                     </div>
@@ -528,7 +614,7 @@
                     <div class="space-y-6">
                         <div class="flex items-center justify-between pb-4 border-b border-goalBorder">
                             <button onclick="app.navigateTo('admin-dashboard')" class="text-xs font-semibold text-zinc-400 hover:text-white"><i class="fa-solid fa-arrow-left"></i> Retour Dashboard</button>
-                            <h2 class="text-xl font-black text-white">Annuaire des Joueurs</h2>
+                            <h2 class="text-xl font-black text-white">Gestion des Joueurs</h2>
                         </div>
 
                         <div class="bg-goalCard border border-goalBorder rounded-2xl p-4 flex items-center gap-3">
@@ -538,7 +624,7 @@
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             ${filtered.map(p => `
-                                <div onclick="app.navigateTo('admin-player-detail', { playerId: '${p.id}' })" class="bg-goalCard border border-goalBorder hover:border-goalred rounded-2xl p-5 cursor-pointer flex items-center justify-between transition">
+                                <div class="bg-goalCard border border-goalBorder rounded-2xl p-5 flex items-center justify-between">
                                     <div class="flex items-center gap-4">
                                         <img src="${p.avatar}" class="w-12 h-12 rounded-full object-cover">
                                         <div>
@@ -547,7 +633,10 @@
                                             <span class="text-[10px] text-goalred font-bold">Crédits : ${p.credits.toLocaleString()} F</span>
                                         </div>
                                     </div>
-                                    <span class="text-xs bg-zinc-800 text-zinc-300 px-3 py-1.5 rounded-xl">Gérer</span>
+                                    <div class="flex gap-2">
+                                        <button onclick="app.navigateTo('admin-player-edit', { playerId: '${p.id}' })" class="bg-goalred text-white text-xs font-bold px-3 py-2 rounded-xl"><i class="fa-solid fa-pen"></i></button>
+                                        <button onclick="app.banPlayer('${p.id}')" class="bg-red-500/10 text-red-400 text-xs font-bold px-3 py-2 rounded-xl"><i class="fa-solid fa-ban"></i></button>
+                                    </div>
                                 </div>
                             `).join('')}
                         </div>
@@ -557,41 +646,47 @@
 
             searchPlayer(val) { this.navigateTo('admin-players', { searchEmail: val }); }
 
-            renderAdminPlayerDetailView(playerId) {
+            renderAdminPlayerEditView(playerId) {
                 const p = this.state.playersDirectory[playerId];
                 if(!p) return `<div class="p-12 text-center text-zinc-400">Joueur introuvable.</div>`;
 
                 return `
                     <div class="space-y-6 max-w-xl mx-auto">
                         <button onclick="app.navigateTo('admin-players')" class="text-xs text-zinc-400"><i class="fa-solid fa-arrow-left"></i> Retour aux joueurs</button>
-                        <div class="bg-goalCard border border-goalBorder rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
-                            <div class="flex items-center gap-4">
-                                <img src="${p.avatar}" class="w-16 h-16 rounded-full object-cover border-2 border-goalred">
-                                <div>
-                                    <h2 class="text-xl font-black text-white">${p.firstName} ${p.lastName}</h2>
-                                    <span class="text-xs text-zinc-400 block">${p.email} • ${p.phone}</span>
+                        <div class="bg-goalCard border border-goalBorder rounded-3xl p-6 sm:p-8 shadow-2xl">
+                            <h2 class="text-xl font-black text-white mb-6">Modifier le profil de ${p.firstName}</h2>
+                            <form onsubmit="app.savePlayerEdits(event, '${p.id}')" class="space-y-4 text-xs">
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div><label class="block text-zinc-400 mb-1">Prénom</label><input type="text" id="pl-fn" value="${p.firstName}" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
+                                    <div><label class="block text-zinc-400 mb-1">Nom</label><input type="text" id="pl-ln" value="${p.lastName}" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
                                 </div>
-                            </div>
-                            <div class="bg-[#18181d] border border-goalBorder p-4 rounded-2xl flex justify-between items-center">
-                                <div>
-                                    <span class="text-[10px] text-zinc-400 block uppercase font-bold">Portefeuille</span>
-                                    <span class="text-xl font-black text-white">${p.credits.toLocaleString()} FCFA</span>
-                                </div>
-                                <div class="flex gap-2">
-                                    <button onclick="app.modifyCredits('${p.id}', 5000)" class="bg-green-500/10 text-green-400 text-xs font-bold px-3 py-2 rounded-xl">+ 5k</button>
-                                    <button onclick="app.modifyCredits('${p.id}', -5000)" class="bg-red-500/10 text-red-400 text-xs font-bold px-3 py-2 rounded-xl">- 5k</button>
-                                </div>
-                            </div>
+                                <div><label class="block text-zinc-400 mb-1">Email</label><input type="email" id="pl-email" value="${p.email}" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
+                                <div><label class="block text-zinc-400 mb-1">Crédits (FCFA)</label><input type="number" id="pl-credits" value="${p.credits}" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
+                                <button type="submit" class="w-full bg-goalred text-white font-bold py-3.5 rounded-xl shadow-lg mt-2">Enregistrer les modifications</button>
+                            </form>
                         </div>
                     </div>
                 `;
             }
 
-            modifyCredits(playerId, amount) {
+            savePlayerEdits(e, playerId) {
+                e.preventDefault();
                 const p = this.state.playersDirectory[playerId];
                 if(p) {
-                    p.credits = Math.max(0, p.credits + amount);
-                    this.navigateTo('admin-player-detail', { playerId });
+                    p.firstName = document.getElementById('pl-fn').value;
+                    p.lastName = document.getElementById('pl-ln').value;
+                    p.email = document.getElementById('pl-email').value;
+                    p.credits = parseInt(document.getElementById('pl-credits').value);
+                    alert("Profil du joueur mis à jour avec succès !");
+                    this.navigateTo('admin-players');
+                }
+            }
+
+            banPlayer(playerId) {
+                if(confirm("Voulez-vous vraiment bannir et supprimer cet utilisateur de la plateforme ?")) {
+                    delete this.state.playersDirectory[playerId];
+                    alert("Utilisateur banni.");
+                    this.navigateTo('admin-players');
                 }
             }
 
@@ -619,11 +714,10 @@
                 const email = document.getElementById('auth-email').value.trim().toLowerCase();
                 const pwd = document.getElementById('auth-pwd').value;
 
-                // Vérification stricte : Omar + ton nouveau mot de passe
                 const isAdmin = (email === "omar.goalup@gmail.com" && pwd === "47749669");
 
                 if(email === "omar.goalup@gmail.com" && pwd !== "47749669") {
-                    alert("Mot de passe incorrect.");
+                    alert("Mot de passe administrateur incorrect.");
                     return;
                 }
 
@@ -632,15 +726,15 @@
                     firstName: isAdmin ? "Omar" : "Membre",
                     lastName: "GoalUp",
                     email: email,
-                    phone: "+221 77 000 00 00",
-                    credits: 10000,
-                    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
+                    phone: "+221 77 823 44 55",
+                    credits: isAdmin ? 999999 : 10000,
+                    avatar: isAdmin ? "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80" : "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
                     isAdmin: isAdmin,
                     isAuthenticated: true
                 };
 
                 this.closeModal();
-                alert(isAdmin ? "Bienvenue dans l'espace Administrateur !" : "Connexion réussie !");
+                alert(isAdmin ? "Bienvenue Fondateur !" : "Connexion réussie !");
                 this.navigateTo('matches');
             }
 
