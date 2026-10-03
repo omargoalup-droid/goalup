@@ -70,36 +70,31 @@
                 this.state = {
                     currentView: 'matches',
                     params: {},
+                    // AUCUN COMPTE PRÉCONNECTÉ : l'utilisateur arrive déconnecté par défaut
                     user: JSON.parse(localStorage.getItem('goalup_current_user')) || {
-                        id: null, firstName: "", lastName: "", email: "", phone: "", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80", isAdmin: false, isAuthenticated: false
+                        id: null, firstName: "", lastName: "", email: "", phone: "", credits: 0, avatar: "", isAdmin: false, isAuthenticated: false
                     },
                     matches: JSON.parse(localStorage.getItem('goalup_matches')) || [
                         {
                             id: "m_01",
                             title: "GOALUP NIGHT - ALMADIES",
-                            dateRaw: "2026-10-09",
-                            dateFull: "Vendredi 9 Octobre 2026",
+                            dateRaw: "2026-10-10",
                             time: "21:00",
                             duration: "1h30",
                             location: "Terrain Galaxy Almadies",
-                            address: "Route de Ngor, Dakar",
                             format: "7v7",
                             level: "Intermédiaire",
-                            maxPlayers: 16,
-                            minPlayers: 10,
-                            currentPlayers: 0,
+                            maxPlayers: 14,
                             price: 3000,
                             status: "Ouvert",
                             description: "Match intense sur gazon synthétique de haute qualité. Chasubles et ballons fournis.",
-                            organizer: { name: "Omar G.", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80" },
-                            registeredUsers: [],
-                            messages: [],
-                            welcomeMessages: {}
+                            registeredUsers: [], // Stocke les IDs des utilisateurs inscrits
+                            messages: []
                         }
                     ],
                     usersDatabase: JSON.parse(localStorage.getItem('goalup_users_db')) || {
                         "omar.goalup@gmail.com": {
-                            id: "usr_admin", firstName: "Omar", lastName: "GoalUp", email: "omar.goalup@gmail.com", phone: "+221 77 823 44 55", password: "47749669", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80", isAdmin: true
+                            id: "usr_admin", firstName: "Omar", lastName: "GoalUp", email: "omar.goalup@gmail.com", phone: "+221 77 823 44 55", password: "47749669", credits: 50000, avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80", isAdmin: true
                         }
                     }
                 };
@@ -147,6 +142,7 @@
                     case 'admin-matches': container.innerHTML = this.state.user.isAdmin ? this.renderAdminMatchesView() : this.renderMatchesView(); break;
                     case 'admin-match-edit': container.innerHTML = this.state.user.isAdmin ? this.renderAdminMatchEditView(this.state.params.matchId) : this.renderMatchesView(); break;
                     case 'admin-players': container.innerHTML = this.state.user.isAdmin ? this.renderAdminPlayersView() : this.renderMatchesView(); break;
+                    case 'admin-player-edit': container.innerHTML = this.state.user.isAdmin ? this.renderAdminPlayerEditView(this.state.params.playerId) : this.renderMatchesView(); break;
 
                     default: container.innerHTML = this.renderMatchesView();
                 }
@@ -162,7 +158,7 @@
                 headerNav.innerHTML = `
                     <button onclick="app.navigateTo('matches')" class="transition py-2 border-b-2 ${v === 'matches' ? 'text-white border-goalred' : 'text-zinc-400 border-transparent hover:text-white'}">Explorer</button>
                     ${u.isAuthenticated ? `<button onclick="app.navigateTo('messages')" class="transition py-2 border-b-2 ${v === 'messages' || v === 'game-chat' ? 'text-white border-goalred' : 'text-zinc-400 border-transparent hover:text-white'}">Messages</button>` : ''}
-                    ${u.isAdmin ? `<button onclick="app.navigateTo('admin-dashboard')" class="transition py-2 border-b-2 text-goalred font-bold ${v.startsWith('admin') ? 'border-goalred' : 'border-transparent'}"><i class="fa-solid fa-shield-halved"></i> Admin Sécurisé</button>` : ''}
+                    ${u.isAdmin ? `<button onclick="app.navigateTo('admin-dashboard')" class="transition py-2 border-b-2 text-goalred font-bold ${v.startsWith('admin') ? 'border-goalred' : 'border-transparent'}"><i class="fa-solid fa-shield-halved"></i> Admin</button>` : ''}
                 `;
 
                 if(u.isAuthenticated) {
@@ -171,7 +167,7 @@
                             <button onclick="app.navigateTo('profile')" class="flex items-center gap-2.5 bg-goalCard hover:bg-goalCardHover border border-goalBorder px-3.5 py-1.5 rounded-full transition group">
                                 <img src="${u.avatar}" class="w-8 h-8 rounded-full object-cover border border-goalred">
                                 <span class="text-xs font-bold text-white group-hover:text-goalred transition hidden sm:inline">${u.firstName}</span>
-                                <span class="text-[10px] ${u.isAdmin ? 'text-goalred font-black' : 'text-zinc-400'} bg-goalred/10 px-2 py-0.5 rounded-md ml-1">${u.isAdmin ? 'ADMIN' : 'Membre'}</span>
+                                <span class="text-[10px] ${u.isAdmin ? 'text-goalred font-black' : 'text-zinc-400'} bg-goalred/10 px-2 py-0.5 rounded-md ml-1">${u.isAdmin ? 'ADMIN' : u.credits.toLocaleString() + ' F'}</span>
                             </button>
                         </div>
                     `;
@@ -198,24 +194,21 @@
             renderMatchesView() {
                 return `
                     <div class="space-y-8">
-                        <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-                            <div>
-                                <div class="flex items-center gap-2 text-xs font-bold text-goalred uppercase tracking-wider mb-1">
-                                    <i class="fa-solid fa-location-dot"></i> <span>Dakar, Sénégal</span>
-                                </div>
-                                <h1 class="text-3xl sm:text-4xl font-black text-white tracking-tight">Matchs à venir</h1>
+                        <div>
+                            <div class="flex items-center gap-2 text-xs font-bold text-goalred uppercase tracking-wider mb-1">
+                                <i class="fa-solid fa-location-dot"></i> <span>Dakar, Sénégal</span>
                             </div>
-                            <div class="text-xs text-zinc-400 bg-goalCard border border-goalBorder px-3.5 py-2 rounded-xl">
-                                ⚽ Paiement officiel WAVE
-                            </div>
+                            <h1 class="text-3xl sm:text-4xl font-black text-white tracking-tight">Matchs à venir</h1>
                         </div>
 
                         <div class="grid grid-cols-1 gap-5">
                             ${this.state.matches.map(m => {
                                 if(m.status === 'Annulé') return '';
+                                const count = m.registeredUsers.length;
+                                const percent = Math.min(100, Math.round((count / m.maxPlayers) * 100));
                                 return `
-                                    <div onclick="app.navigateTo('match-detail', { matchId: '${m.id}' })" class="bg-goalCard border border-goalBorder hover:border-zinc-700 rounded-3xl p-6 cursor-pointer transition group shadow-lg">
-                                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                                    <div onclick="app.navigateTo('match-detail', { matchId: '${m.id}' })" class="bg-goalCard border border-goalBorder hover:border-zinc-700 rounded-3xl p-6 cursor-pointer transition group shadow-lg space-y-4">
+                                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                             <div class="flex items-start gap-4">
                                                 <div class="bg-[#18181d] border border-goalBorder px-4 py-3 rounded-2xl text-center shrink-0">
                                                     <span class="text-[10px] text-zinc-400 block uppercase font-bold">Date</span>
@@ -238,6 +231,16 @@
                                                 <span class="text-xs font-bold bg-white text-black px-4 py-2 rounded-xl inline-block mt-2 group-hover:bg-goalred group-hover:text-white transition">Voir match</span>
                                             </div>
                                         </div>
+                                        <!-- BARRE DE PROGRESSION -->
+                                        <div class="space-y-1.5 pt-2 border-t border-goalBorder">
+                                            <div class="flex justify-between text-xs font-bold">
+                                                <span class="text-zinc-400">Remplissage : <strong class="text-white">${count} / ${m.maxPlayers} joueurs</strong></span>
+                                                <span class="${count >= m.maxPlayers ? 'text-red-500' : 'text-goalred'}">${count >= m.maxPlayers ? 'COMPLET' : percent + '%'}</span>
+                                            </div>
+                                            <div class="w-full h-2 bg-[#18181d] rounded-full overflow-hidden border border-goalBorder">
+                                                <div class="h-full bg-goalred transition-all duration-500" style="width: ${percent}%"></div>
+                                            </div>
+                                        </div>
                                     </div>
                                 `;
                             }).join('')}
@@ -252,34 +255,83 @@
                 const u = this.state.user;
                 const isAuth = u.isAuthenticated;
                 const isBooked = isAuth && m.registeredUsers.includes(u.id);
+                const count = m.registeredUsers.length;
+                const percent = Math.min(100, Math.round((count / m.maxPlayers) * 100));
+
+                // Retrouver la liste complète des objets utilisateurs inscrits
+                const registeredProfiles = m.registeredUsers.map(uid => {
+                    return Object.values(this.state.usersDatabase).find(usr => usr.id === uid) || { firstName: "Joueur", lastName: "GOALUP", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80" };
+                });
 
                 return `
-                    <div class="space-y-6">
+                    <div class="space-y-6 max-w-3xl mx-auto">
                         <button onclick="app.navigateTo('matches')" class="text-xs font-semibold text-zinc-400 hover:text-white flex items-center gap-2"><i class="fa-solid fa-arrow-left"></i> Retour</button>
+                        
                         <div class="bg-goalCard border border-goalBorder rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
-                            <h1 class="text-3xl font-black text-white">${m.title}</h1>
-                            <div class="flex flex-wrap items-center gap-4 text-xs text-zinc-400">
-                                <span><i class="fa-regular fa-calendar text-goalred mr-1"></i> ${m.dateFull}</span>
-                                <span><i class="fa-regular fa-clock text-goalred mr-1"></i> ${m.time}</span>
-                                <span><i class="fa-solid fa-location-dot text-goalred mr-1"></i> ${m.location}</span>
-                                <span class="bg-goalred/10 text-goalred font-bold px-2.5 py-1 rounded-md">Inscrits : ${m.currentPlayers} / ${m.maxPlayers}</span>
+                            <div class="space-y-2">
+                                <span class="bg-goalred text-white text-[10px] font-extrabold px-3 py-1 rounded-md">${m.format} • ${m.level}</span>
+                                <h1 class="text-3xl font-black text-white">${m.title}</h1>
+                                <p class="text-xs text-zinc-400"><i class="fa-solid fa-location-dot text-goalred mr-1"></i> ${m.location} • <i class="fa-regular fa-clock text-goalred ml-2 mr-1"></i> ${m.dateRaw} à ${m.time}</p>
                             </div>
+
                             <p class="text-xs text-zinc-300 leading-relaxed">${m.description}</p>
-                            <div class="flex gap-4">
+
+                            <!-- Barre de progression détaillée -->
+                            <div class="bg-[#18181d] border border-goalBorder p-4 rounded-2xl space-y-2">
+                                <div class="flex justify-between text-xs font-bold">
+                                    <span class="text-zinc-400">Joueurs inscrits</span>
+                                    <span class="text-white">${count} / ${m.maxPlayers} max</span>
+                                </div>
+                                <div class="w-full h-2.5 bg-black rounded-full overflow-hidden border border-goalBorder">
+                                    <div class="h-full bg-goalred" style="width: ${percent}%"></div>
+                                </div>
+                            </div>
+
+                            <!-- Liste des joueurs inscrits -->
+                            <div class="space-y-3">
+                                <h3 class="text-sm font-black text-white">Équipe des inscrits (${count}/${m.maxPlayers})</h3>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    ${registeredProfiles.length ? registeredProfiles.map(p => `
+                                        <div class="flex items-center gap-3 bg-[#18181d] border border-goalBorder p-3 rounded-2xl">
+                                            <img src="${p.avatar}" class="w-8 h-8 rounded-full object-cover border border-goalred">
+                                            <span class="text-xs font-bold text-white">${p.firstName}${p.lastName}</span>
+                                        </div>
+                                    `).join('') : `<p class="text-xs text-zinc-500 italic py-2">Aucun joueur inscrit pour le moment. Sois le premier !</p>`}
+                                </div>
+                            </div>
+
+                            <div class="flex gap-3 pt-2">
                                 <button onclick="app.navigateTo('game-chat', { matchId: '${m.id}' })" class="bg-zinc-800 text-white font-bold px-4 py-2.5 rounded-xl text-xs"><i class="fa-solid fa-comments text-goalred"></i> Ouvrir le Chat Live</button>
                             </div>
+
+                            <!-- GESTION RÉSERVATION / PAIEMENT / QUITTER -->
                             <div class="pt-4 border-t border-goalBorder">
                                 ${!isAuth ? `
                                     <div class="flex flex-col sm:flex-row gap-3">
                                         <button onclick="app.openAuthModal('login')" class="flex-1 bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-3.5 rounded-xl text-xs transition">Se connecter</button>
                                         <button onclick="app.openAuthModal('register')" class="flex-1 bg-goalred hover:bg-red-700 text-white font-bold py-3.5 rounded-xl text-xs transition shadow-lg">S'inscrire</button>
                                     </div>
-                                ` : (isBooked ? 
-                                    `<div class="text-green-400 font-bold text-xs"><i class="fa-solid fa-circle-check"></i> Tu es inscrit à ce match !</div>` :
-                                    `<a href="https://pay.wave.com/m/M_sn_cUn3bNetMY4Y/c/sn/" target="_blank" onclick="app.prepareBooking('${m.id}')" class="w-full bg-[#1EBBEE] hover:bg-sky-400 text-black font-extrabold py-4 rounded-xl text-sm shadow-xl flex items-center justify-center gap-2 block text-center">
-                                        <i class="fa-solid fa-wallet"></i> Payer ${m.price.toLocaleString()} FCFA avec WAVE
-                                     </a>`
-                                )}
+                                ` : (isBooked ? `
+                                    <div class="space-y-3">
+                                        <div class="bg-green-500/10 border border-green-500/30 text-green-400 font-bold text-xs p-4 rounded-2xl flex items-center justify-between">
+                                            <span><i class="fa-solid fa-circle-check text-base mr-2"></i> Ta place est confirmée pour ce match !</span>
+                                        </div>
+                                        <button onclick="app.openQuitMatchModal('${m.id}')" class="w-full bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold py-3 rounded-xl text-xs transition border border-red-500/30">
+                                            Quitter le match (Politique de remboursement)
+                                        </button>
+                                    </div>
+                                ` : (count >= m.maxPlayers ? `
+                                    <div class="text-red-500 font-bold text-xs text-center py-3 bg-red-500/10 rounded-xl">Match complet !</div>
+                                ` : `
+                                    <div class="space-y-3">
+                                        <a href="https://pay.wave.com/m/M_sn_cUn3bNetMY4Y/c/sn/" target="_blank" onclick="app.prepareBooking('${m.id}')" class="w-full bg-[#1EBBEE] hover:bg-sky-400 text-black font-extrabold py-4 rounded-xl text-sm shadow-xl flex items-center justify-center gap-2 block text-center">
+                                            <i class="fa-solid fa-wallet"></i> Payer ${m.price.toLocaleString()} FCFA avec WAVE
+                                        </a>
+                                        <button onclick="app.confirmBooking('${m.id}')" class="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold py-2.5 rounded-xl text-xs">
+                                            [Mode Admin / Test] S'inscrire directement
+                                        </button>
+                                    </div>
+                                `))}
                             </div>
                         </div>
                     </div>
@@ -287,7 +339,6 @@
             }
 
             prepareBooking(matchId) {
-                // Stocke l'ID du match en cours pour valider automatiquement au retour de Wave
                 localStorage.setItem('goalup_pending_match', matchId);
             }
 
@@ -297,14 +348,66 @@
 
                 if(m && !m.registeredUsers.includes(u.id)) {
                     m.registeredUsers.push(u.id);
-                    m.currentPlayers += 1;
+                    m.currentPlayers = m.registeredUsers.length;
                     if(!m.welcomeMessages) m.welcomeMessages = {};
-                    m.welcomeMessages[u.id] = `👋 Salut ${u.firstName} ! Paiement Wave validé. Ta place pour "${m.title}" est confirmée.`;
+                    m.welcomeMessages[u.id] = `👋 Salut ${u.firstName} ! Paiement validé. Ta place pour "${m.title}" est confirmée.`;
                     this.saveToStorage();
                     localStorage.removeItem('goalup_pending_match');
-                    alert("Paiement validé avec succès ! Votre place est confirmée.");
+                    alert("Réservation confirmée avec succès !");
                     this.navigateTo('match-detail', { matchId });
                 }
+            }
+
+            // --- POLITIQUE DE REMBOURSEMENT & QUIT ---
+            openQuitMatchModal(matchId) {
+                const modal = document.getElementById('system-modal');
+                const content = document.getElementById('modal-content');
+                modal.classList.remove('hidden');
+
+                content.innerHTML = `
+                    <div class="space-y-5 text-center">
+                        <h3 class="text-xl font-black text-white">Quitter le match</h3>
+                        <p class="text-xs text-zinc-300 leading-relaxed">
+                            Règles de remboursement de GOALUP :<br>
+                            • <strong>> 24h avant</strong> : Remboursement total (3 000 FCFA).<br>
+                            • <strong>Entre 15h et 24h</strong> : Remboursement en crédits GOALUP.<br>
+                            • <strong>< 15h avant</strong> : Aucun remboursement.
+                        </p>
+                        <div class="space-y-2 pt-2">
+                            <button onclick="app.processQuitMatch('${matchId}', 26)" class="w-full bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-3 rounded-xl text-xs">Simuler annulation > 24h (Total)</button>
+                            <button onclick="app.processQuitMatch('${matchId}', 18)" class="w-full bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-3 rounded-xl text-xs">Simuler annulation (Entre 15h et 24h)</button>
+                            <button onclick="app.processQuitMatch('${matchId}', 10)" class="w-full bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold py-3 rounded-xl text-xs">Simuler annulation < 15h (Pas de remboursement)</button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            processQuitMatch(matchId, hoursBefore) {
+                const m = this.state.matches.find(item => item.id === matchId);
+                const u = this.state.user;
+
+                m.registeredUsers = m.registeredUsers.filter(uid => uid !== u.id);
+                m.currentPlayers = m.registeredUsers.length;
+
+                let msg = "";
+                if (hoursBefore > 24) {
+                    msg = "Match quitté plus de 24h avant : Votre remboursement total (3 000 FCFA) a été pris en compte.";
+                } else if (hoursBefore >= 15) {
+                    u.credits += m.price;
+                    msg = `Match quitté entre 15h et 24h avant : ${m.price} FCFA ajoutés en crédits GOALUP sur votre profil !`;
+                } else {
+                    msg = "Match quitté moins de 15h avant : Aucun remboursement effectué conformément au règlement.";
+                }
+
+                // Mettre à jour la base globale
+                if(this.state.usersDatabase[u.email]) {
+                    this.state.usersDatabase[u.email].credits = u.credits;
+                }
+
+                this.saveToStorage();
+                this.closeModal();
+                alert(msg);
+                this.navigateTo('match-detail', { matchId });
             }
 
             // --- AUTHENTIFICATION SÉCURISÉE ---
@@ -377,6 +480,7 @@
                     email: email,
                     phone: phone,
                     password: pwd,
+                    credits: 0,
                     avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
                     isAdmin: false
                 };
@@ -410,6 +514,7 @@
                         <div class="space-y-3 text-xs">
                             <p class="text-zinc-300"><strong>Email :</strong> ${u.email}</p>
                             <p class="text-zinc-300"><strong>Téléphone :</strong> ${u.phone}</p>
+                            <p class="text-zinc-300"><strong>Crédits GOALUP disponibles :</strong> <strong class="text-goalred text-sm">${u.credits.toLocaleString()} FCFA</strong></p>
                             <p class="text-zinc-300"><strong>Statut :</strong> ${u.isAdmin ? 'Fondateur / Administrateur' : 'Membre'}</p>
                         </div>
                     </div>
@@ -452,7 +557,7 @@
                 u.avatar = document.getElementById('up-avatar-choice').value;
 
                 if(this.state.usersDatabase[u.email]) {
-                    this.state.usersDatabase[u.email] = { ...u, password: this.state.usersDatabase[u.email].password };
+                    this.state.usersDatabase[u.email] = { ...this.state.usersDatabase[u.email], ...u };
                 }
 
                 this.saveToStorage();
@@ -518,7 +623,7 @@
 
             closeModal() { document.getElementById('system-modal').classList.add('hidden'); }
 
-            // --- ESPACE ADMIN COMPLET RESTAURÉ ---
+            // --- ESPACE ADMIN COMPLET ---
             renderAdminDashboardView() {
                 return `
                     <div class="space-y-8">
@@ -532,7 +637,7 @@
                             <div onclick="app.navigateTo('admin-players')" class="bg-goalCard border border-goalBorder hover:border-goalred rounded-3xl p-6 cursor-pointer transition shadow-xl group">
                                 <div class="w-12 h-12 rounded-2xl bg-goalred/10 flex items-center justify-center text-goalred text-xl mb-4 group-hover:scale-110 transition"><i class="fa-solid fa-users"></i></div>
                                 <h3 class="text-xl font-bold text-white mb-2">Section Joueurs</h3>
-                                <p class="text-xs text-zinc-400">Gérer les comptes inscrits et bannir si nécessaire.</p>
+                                <p class="text-xs text-zinc-400">Gérer les profils inscrits, ajouter des crédits ou bannir.</p>
                             </div>
                         </div>
                     </div>
@@ -553,7 +658,7 @@
                                     <div>
                                         <div class="flex items-center gap-2 mb-1">
                                             <span class="text-xs font-bold text-goalred">${m.format}</span>
-                                            <span class="text-xs text-zinc-400">${m.dateFull} (${m.time})</span>
+                                            <span class="text-xs text-zinc-400">${m.dateRaw} (${m.time})</span>
                                         </div>
                                         <h4 class="font-bold text-white text-sm">${m.title} — ${m.location} (${m.price.toLocaleString()} FCFA)</h4>
                                     </div>
@@ -576,14 +681,14 @@
                 content.innerHTML = `
                     <h3 class="text-xl font-black text-white mb-4">Créer un nouveau match</h3>
                     <form onsubmit="app.createMatchSubmit(event)" class="space-y-3 text-xs">
-                        <div><label class="block text-zinc-400 mb-1">Titre</label><input type="text" id="cr-title" required placeholder="GOALUP NIGHT - ALMADIES" class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
+                        <div><label class="block text-zinc-400 mb-1">Titre</label><input type="text" id="cr-title" required placeholder="GOALUP NIGHT" class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
                         <div class="grid grid-cols-2 gap-2">
                             <div><label class="block text-zinc-400 mb-1">Date (YYYY-MM-DD)</label><input type="date" id="cr-dateraw" required value="2026-10-15" class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
                             <div><label class="block text-zinc-400 mb-1">Heure</label><input type="text" id="cr-time" required value="21:00" class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
                         </div>
                         <div><label class="block text-zinc-400 mb-1">Lieu</label><input type="text" id="cr-loc" required placeholder="Terrain Almadies" class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
                         <div class="grid grid-cols-2 gap-2">
-                            <div><label class="block text-zinc-400 mb-1">Format</label><input type="text" id="cr-format" required value="7v7" class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
+                            <div><label class="block text-zinc-400 mb-1">Max Joueurs</label><input type="number" id="cr-max" required value="14" class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
                             <div><label class="block text-zinc-400 mb-1">Prix (FCFA)</label><input type="number" id="cr-price" required value="3000" class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
                         </div>
                         <div><label class="block text-zinc-400 mb-1">Description</label><textarea id="cr-desc" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white">Match intense sur gazon synthétique.</textarea></div>
@@ -598,35 +703,27 @@
                     id: "m_" + Date.now(),
                     title: document.getElementById('cr-title').value,
                     dateRaw: document.getElementById('cr-dateraw').value,
-                    dateFull: "Match Dakar",
                     time: document.getElementById('cr-time').value,
                     duration: "1h30",
                     location: document.getElementById('cr-loc').value,
-                    address: "Dakar",
-                    format: document.getElementById('cr-format').value,
+                    format: "7v7",
                     level: "Intermédiaire",
-                    maxPlayers: 16,
-                    minPlayers: 10,
-                    currentPlayers: 0,
+                    maxPlayers: parseInt(document.getElementById('cr-max').value),
                     price: parseInt(document.getElementById('cr-price').value),
                     status: "Ouvert",
                     description: document.getElementById('cr-desc').value,
-                    organizer: { name: "Omar G.", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80" },
                     registeredUsers: [],
-                    messages: [],
-                    welcomeMessages: {}
+                    messages: []
                 };
                 this.state.matches.push(newM);
                 this.saveToStorage();
                 this.closeModal();
-                alert("Match créé avec succès !");
+                alert("Match créé !");
                 this.navigateTo('admin-matches');
             }
 
             renderAdminMatchEditView(matchId) {
                 const m = this.state.matches.find(item => item.id === matchId);
-                if(!m) return `<div class="p-12 text-center text-zinc-400">Match introuvable.</div>`;
-
                 return `
                     <div class="space-y-6 max-w-xl mx-auto">
                         <button onclick="app.navigateTo('admin-matches')" class="text-xs text-zinc-400 hover:text-white"><i class="fa-solid fa-arrow-left"></i> Retour</button>
@@ -640,7 +737,7 @@
                                 </div>
                                 <div class="grid grid-cols-2 gap-3">
                                     <div><label class="block text-zinc-400 mb-1">Prix (FCFA)</label><input type="number" id="ed-price" value="${m.price}" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
-                                    <div><label class="block text-zinc-400 mb-1">Lieu</label><input type="text" id="ed-loc" value="${m.location}" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
+                                    <div><label class="block text-zinc-400 mb-1">Max Joueurs</label><input type="number" id="ed-max" value="${m.maxPlayers}" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
                                 </div>
                                 <button type="submit" class="w-full bg-goalred text-white font-bold py-3.5 rounded-xl shadow-lg mt-2">Enregistrer</button>
                             </form>
@@ -652,16 +749,14 @@
             saveMatchEdits(e, matchId) {
                 e.preventDefault();
                 const m = this.state.matches.find(item => item.id === matchId);
-                if(m) {
-                    m.title = document.getElementById('ed-title').value;
-                    m.dateRaw = document.getElementById('ed-dateraw').value;
-                    m.time = document.getElementById('ed-time').value;
-                    m.price = parseInt(document.getElementById('ed-price').value);
-                    m.location = document.getElementById('ed-loc').value;
-                    this.saveToStorage();
-                    alert("Match mis à jour !");
-                    this.navigateTo('admin-matches');
-                }
+                m.title = document.getElementById('ed-title').value;
+                m.dateRaw = document.getElementById('ed-dateraw').value;
+                m.time = document.getElementById('ed-time').value;
+                m.price = parseInt(document.getElementById('ed-price').value);
+                m.maxPlayers = parseInt(document.getElementById('ed-max').value);
+                this.saveToStorage();
+                alert("Match mis à jour !");
+                this.navigateTo('admin-matches');
             }
 
             deleteMatch(matchId) {
@@ -685,22 +780,57 @@
                                         <img src="${p.avatar}" class="w-12 h-12 rounded-full object-cover">
                                         <div>
                                             <h4 class="font-bold text-white text-sm">${p.firstName}${p.lastName}</h4>
-                                            <span class="text-xs text-zinc-400 block">${p.email} •${p.phone}</span>
+                                            <span class="text-xs text-zinc-400 block">${p.email} •${p.credits.toLocaleString()} F de crédits</span>
                                         </div>
                                     </div>
-                                    <button onclick="app.banPlayer('${p.email}')" class="bg-red-500/10 text-red-400 text-xs font-bold px-3 py-2.5 rounded-xl"><i class="fa-solid fa-ban"></i> Bannir</button>
+                                    <div class="flex gap-2">
+                                        <button onclick="app.navigateTo('admin-player-edit', { playerId: '${p.id}' })" class="bg-goalred text-white text-xs font-bold px-3.5 py-2.5 rounded-xl"><i class="fa-solid fa-pen"></i></button>
+                                        <button onclick="app.banPlayer('${p.email}')" class="bg-red-500/10 text-red-400 text-xs font-bold px-3 py-2.5 rounded-xl"><i class="fa-solid fa-ban"></i></button>
+                                    </div>
                                 </div>
-                            `).join('') : '<p class="text-xs text-zinc-500 text-center py-12">Aucun joueur inscrit pour le moment.</p>'}
+                            `).join('') : '<p class="text-xs text-zinc-500 text-center py-12">Aucun joueur inscrit.</p>'}
                         </div>
                     </div>
                 `;
             }
 
+            renderAdminPlayerEditView(playerId) {
+                const p = Object.values(this.state.usersDatabase).find(usr => usr.id === playerId);
+                if(!p) return `<div class="p-12 text-center text-zinc-400">Joueur introuvable.</div>`;
+
+                return `
+                    <div class="space-y-6 max-w-xl mx-auto">
+                        <button onclick="app.navigateTo('admin-players')" class="text-xs text-zinc-400"><i class="fa-solid fa-arrow-left"></i> Retour</button>
+                        <div class="bg-goalCard border border-goalBorder rounded-3xl p-6 sm:p-8 shadow-2xl">
+                            <h2 class="text-xl font-black text-white mb-6">Modifier le joueur ${p.firstName}</h2>
+                            <form onsubmit="app.savePlayerAdminEdits(event, '${p.email}')" class="space-y-4 text-xs">
+                                <div><label class="block text-zinc-400 mb-1">Prénom</label><input type="text" id="adm-fn" value="${p.firstName}" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
+                                <div><label class="block text-zinc-400 mb-1">Nom</label><input type="text" id="adm-ln" value="${p.lastName}" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
+                                <div><label class="block text-zinc-400 mb-1">Crédits GOALUP (FCFA)</label><input type="number" id="adm-credits" value="${p.credits}" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
+                                <button type="submit" class="w-full bg-goalred text-white font-bold py-3.5 rounded-xl shadow-lg mt-2">Enregistrer les modifications</button>
+                            </form>
+                        </div>
+                    </div>
+                `;
+            }
+
+            savePlayerAdminEdits(e, email) {
+                e.preventDefault();
+                const p = this.state.usersDatabase[email];
+                if(p) {
+                    p.firstName = document.getElementById('adm-fn').value.trim();
+                    p.lastName = document.getElementById('adm-ln').value.trim();
+                    p.credits = parseInt(document.getElementById('adm-credits').value);
+                    this.saveToStorage();
+                    alert("Profil du joueur mis à jour avec succès !");
+                    this.navigateTo('admin-players');
+                }
+            }
+
             banPlayer(email) {
-                if(confirm("Voulez-vous vraiment supprimer cet utilisateur ?")) {
+                if(confirm("Supprimer ce joueur ?")) {
                     delete this.state.usersDatabase[email];
                     this.saveToStorage();
-                    alert("Utilisateur supprimé.");
                     this.navigateTo('admin-players');
                 }
             }
