@@ -71,7 +71,7 @@
                     currentView: 'matches',
                     params: {},
                     user: JSON.parse(localStorage.getItem('goalup_current_user')) || {
-                        id: null, firstName: "", lastName: "", email: "", phone: "", avatar: "", isAdmin: false, isAuthenticated: false
+                        id: null, firstName: "", lastName: "", email: "", phone: "", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80", isAdmin: false, isAuthenticated: false
                     },
                     matches: JSON.parse(localStorage.getItem('goalup_matches')) || [
                         {
@@ -169,7 +169,7 @@
                     headerUser.innerHTML = `
                         <div class="flex items-center gap-3">
                             <button onclick="app.navigateTo('profile')" class="flex items-center gap-2.5 bg-goalCard hover:bg-goalCardHover border border-goalBorder px-3.5 py-1.5 rounded-full transition group">
-                                <img src="${u.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'}" class="w-8 h-8 rounded-full object-cover border border-goalred">
+                                <img src="${u.avatar}" class="w-8 h-8 rounded-full object-cover border border-goalred">
                                 <span class="text-xs font-bold text-white group-hover:text-goalred transition hidden sm:inline">${u.firstName}</span>
                                 <span class="text-[10px] ${u.isAdmin ? 'text-goalred font-black' : 'text-zinc-400'} bg-goalred/10 px-2 py-0.5 rounded-md ml-1">${u.isAdmin ? 'ADMIN' : 'Membre'}</span>
                             </button>
@@ -258,6 +258,12 @@
                         <button onclick="app.navigateTo('matches')" class="text-xs font-semibold text-zinc-400 hover:text-white flex items-center gap-2"><i class="fa-solid fa-arrow-left"></i> Retour</button>
                         <div class="bg-goalCard border border-goalBorder rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
                             <h1 class="text-3xl font-black text-white">${m.title}</h1>
+                            <div class="flex flex-wrap items-center gap-4 text-xs text-zinc-400">
+                                <span><i class="fa-regular fa-calendar text-goalred mr-1"></i> ${m.dateFull}</span>
+                                <span><i class="fa-regular fa-clock text-goalred mr-1"></i> ${m.time}</span>
+                                <span><i class="fa-solid fa-location-dot text-goalred mr-1"></i> ${m.location}</span>
+                                <span class="bg-goalred/10 text-goalred font-bold px-2.5 py-1 rounded-md">Inscrits : ${m.currentPlayers} / ${m.maxPlayers}</span>
+                            </div>
                             <p class="text-xs text-zinc-300 leading-relaxed">${m.description}</p>
                             <div class="flex gap-4">
                                 <button onclick="app.navigateTo('game-chat', { matchId: '${m.id}' })" class="bg-zinc-800 text-white font-bold px-4 py-2.5 rounded-xl text-xs"><i class="fa-solid fa-comments text-goalred"></i> Ouvrir le Chat Live</button>
@@ -270,9 +276,9 @@
                                     </div>
                                 ` : (isBooked ? 
                                     `<div class="text-green-400 font-bold text-xs"><i class="fa-solid fa-circle-check"></i> Tu es inscrit à ce match !</div>` :
-                                    `<button onclick="app.openWavePaymentModal('${m.id}')" class="w-full bg-[#1EBBEE] hover:bg-sky-400 text-black font-extrabold py-4 rounded-xl text-sm shadow-xl flex items-center justify-center gap-2">
+                                    `<a href="https://pay.wave.com/m/M_sn_cUn3bNetMY4Y/c/sn/" target="_blank" onclick="app.prepareBooking('${m.id}')" class="w-full bg-[#1EBBEE] hover:bg-sky-400 text-black font-extrabold py-4 rounded-xl text-sm shadow-xl flex items-center justify-center gap-2 block text-center">
                                         <i class="fa-solid fa-wallet"></i> Payer ${m.price.toLocaleString()} FCFA avec WAVE
-                                     </button>`
+                                     </a>`
                                 )}
                             </div>
                         </div>
@@ -280,53 +286,23 @@
                 `;
             }
 
-            // --- REDIRECTION VERS TON VRAI LIEN WAVE ---
-            openWavePaymentModal(matchId) {
-                const m = this.state.matches.find(item => item.id === matchId);
-                const u = this.state.user;
-
-                if(u.isAdmin) {
-                    this.confirmBooking(matchId);
-                    return;
-                }
-
-                const modal = document.getElementById('system-modal');
-                const content = document.getElementById('modal-content');
-                modal.classList.remove('hidden');
-
-                // Ton vrai lien Wave personnel / marchand officiel
-                const waveLink = "https://pay.wave.com/m/M_sn_cUn3bNetMY4Y/c/sn/";
-
-                content.innerHTML = `
-                    <div class="space-y-5 text-center">
-                        <div class="w-16 h-16 bg-[#1EBBEE]/10 rounded-full flex items-center justify-center mx-auto text-[#1EBBEE] text-3xl font-black">W</div>
-                        <h3 class="text-xl font-black text-white">Paiement Wave Officiel</h3>
-                        <p class="text-xs text-zinc-400">Montant à régler : <strong class="text-white text-sm">${m.price.toLocaleString()} FCFA</strong> pour <strong class="text-white">${m.title}</strong>.</p>
-                        
-                        <div class="space-y-3 pt-2">
-                            <a href="${waveLink}" target="_blank" class="w-full bg-[#1EBBEE] hover:bg-sky-400 text-black font-extrabold py-4 rounded-2xl flex items-center justify-center gap-2 transition shadow-lg text-xs block">
-                                <i class="fa-solid fa-external-link-alt text-sm"></i> Ouvrir Wave & Payer directement
-                            </a>
-                            <button onclick="app.confirmBooking('${m.id}')" class="w-full bg-goalred hover:bg-red-700 text-white font-bold py-3.5 rounded-2xl text-xs transition shadow-lg">
-                                J'ai effectué le paiement, valider ma place
-                            </button>
-                        </div>
-                    </div>
-                `;
+            prepareBooking(matchId) {
+                // Stocke l'ID du match en cours pour valider automatiquement au retour de Wave
+                localStorage.setItem('goalup_pending_match', matchId);
             }
 
             confirmBooking(matchId) {
                 const m = this.state.matches.find(item => item.id === matchId);
                 const u = this.state.user;
 
-                if(!m.registeredUsers.includes(u.id)) {
+                if(m && !m.registeredUsers.includes(u.id)) {
                     m.registeredUsers.push(u.id);
                     m.currentPlayers += 1;
                     if(!m.welcomeMessages) m.welcomeMessages = {};
-                    m.welcomeMessages[u.id] = `👋 Salut ${u.firstName} ! Paiement Wave vérifié. Ta place pour "${m.title}" est confirmée.`;
+                    m.welcomeMessages[u.id] = `👋 Salut ${u.firstName} ! Paiement Wave validé. Ta place pour "${m.title}" est confirmée.`;
                     this.saveToStorage();
-                    this.closeModal();
-                    alert("Réservation confirmée avec succès !");
+                    localStorage.removeItem('goalup_pending_match');
+                    alert("Paiement validé avec succès ! Votre place est confirmée.");
                     this.navigateTo('match-detail', { matchId });
                 }
             }
@@ -424,10 +400,10 @@
                         </div>
 
                         <div class="flex items-center gap-5 pb-6 border-b border-goalBorder">
-                            <img src="${u.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'}" class="w-20 h-20 rounded-full object-cover border-2 border-goalred">
+                            <img src="${u.avatar}" class="w-20 h-20 rounded-full object-cover border-2 border-goalred">
                             <div class="space-y-2">
                                 <h3 class="text-lg font-bold text-white">${u.firstName} ${u.lastName}</h3>
-                                <button onclick="app.openEditProfileModal()" class="bg-goalred hover:bg-red-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition">Modifier mes infos & photo</button>
+                                <button onclick="app.openEditProfileModal()" class="bg-goalred hover:bg-red-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition">Modifier mon profil</button>
                             </div>
                         </div>
 
@@ -454,8 +430,15 @@
                             <div><label class="block text-zinc-400 mb-1">Nom</label><input type="text" id="up-ln" value="${u.lastName}" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
                         </div>
                         <div><label class="block text-zinc-400 mb-1">Téléphone</label><input type="tel" id="up-phone" value="${u.phone}" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
-                        <div><label class="block text-zinc-400 mb-1">Lien de la photo de profil (URL)</label><input type="url" id="up-avatar" value="${u.avatar}" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
-                        <button type="submit" class="w-full bg-goalred text-white font-bold py-3.5 rounded-xl shadow-lg mt-2">Enregistrer les modifications</button>
+                        <div>
+                            <label class="block text-zinc-400 mb-1">Choisir ton avatar / style</label>
+                            <select id="up-avatar-choice" class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white">
+                                <option value="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80">Style Classique 1</option>
+                                <option value="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80">Style Classique 2</option>
+                                <option value="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80">Style Classique 3</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="w-full bg-goalred text-white font-bold py-3.5 rounded-xl shadow-lg mt-2">Enregistrer</button>
                     </form>
                 `;
             }
@@ -466,7 +449,7 @@
                 u.firstName = document.getElementById('up-fn').value.trim();
                 u.lastName = document.getElementById('up-ln').value.trim();
                 u.phone = document.getElementById('up-phone').value.trim();
-                u.avatar = document.getElementById('up-avatar').value.trim();
+                u.avatar = document.getElementById('up-avatar-choice').value;
 
                 if(this.state.usersDatabase[u.email]) {
                     this.state.usersDatabase[u.email] = { ...u, password: this.state.usersDatabase[u.email].password };
@@ -474,7 +457,7 @@
 
                 this.saveToStorage();
                 this.closeModal();
-                alert("Profil mis à jour avec succès !");
+                alert("Profil mis à jour !");
                 this.navigateTo('profile');
             }
 
@@ -535,14 +518,22 @@
 
             closeModal() { document.getElementById('system-modal').classList.add('hidden'); }
 
-            // --- ADMIN ---
+            // --- ESPACE ADMIN COMPLET RESTAURÉ ---
             renderAdminDashboardView() {
                 return `
                     <div class="space-y-8">
-                        <div><span class="text-xs text-goalred font-bold uppercase">Espace Fondateur</span><h1 class="text-3xl font-black text-white mt-1">Dashboard Admin</h1></div>
+                        <div><span class="text-xs text-goalred font-bold uppercase"><i class="fa-solid fa-shield-halved"></i> Espace Fondateur • Contrôle Total</span><h1 class="text-3xl font-black text-white mt-1">Dashboard Admin</h1></div>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                            <div onclick="app.navigateTo('admin-matches')" class="bg-goalCard border border-goalBorder rounded-3xl p-6 cursor-pointer"><h3 class="text-xl font-bold text-white mb-2">Section Matchs</h3></div>
-                            <div onclick="app.navigateTo('admin-players')" class="bg-goalCard border border-goalBorder rounded-3xl p-6 cursor-pointer"><h3 class="text-xl font-bold text-white mb-2">Section Joueurs</h3></div>
+                            <div onclick="app.navigateTo('admin-matches')" class="bg-goalCard border border-goalBorder hover:border-goalred rounded-3xl p-6 cursor-pointer transition shadow-xl group">
+                                <div class="w-12 h-12 rounded-2xl bg-goalred/10 flex items-center justify-center text-goalred text-xl mb-4 group-hover:scale-110 transition"><i class="fa-solid fa-futbol"></i></div>
+                                <h3 class="text-xl font-bold text-white mb-2">Section Matchs</h3>
+                                <p class="text-xs text-zinc-400">Créer, éditer, supprimer des sessions de match à Dakar.</p>
+                            </div>
+                            <div onclick="app.navigateTo('admin-players')" class="bg-goalCard border border-goalBorder hover:border-goalred rounded-3xl p-6 cursor-pointer transition shadow-xl group">
+                                <div class="w-12 h-12 rounded-2xl bg-goalred/10 flex items-center justify-center text-goalred text-xl mb-4 group-hover:scale-110 transition"><i class="fa-solid fa-users"></i></div>
+                                <h3 class="text-xl font-bold text-white mb-2">Section Joueurs</h3>
+                                <p class="text-xs text-zinc-400">Gérer les comptes inscrits et bannir si nécessaire.</p>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -551,13 +542,25 @@
             renderAdminMatchesView() {
                 return `
                     <div class="space-y-6">
-                        <button onclick="app.navigateTo('admin-dashboard')" class="text-xs text-zinc-400"><i class="fa-solid fa-arrow-left"></i> Retour</button>
+                        <div class="flex items-center justify-between pb-4 border-b border-goalBorder">
+                            <button onclick="app.navigateTo('admin-dashboard')" class="text-xs text-zinc-400 hover:text-white"><i class="fa-solid fa-arrow-left"></i> Retour Dashboard</button>
+                            <button onclick="app.openCreateMatchModal()" class="bg-goalred hover:bg-red-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs shadow-lg"><i class="fa-solid fa-plus"></i> Nouveau match</button>
+                        </div>
                         <h2 class="text-xl font-black text-white">Gestion des Matchs</h2>
                         <div class="space-y-3">
                             ${this.state.matches.map(m => `
                                 <div class="bg-goalCard border border-goalBorder rounded-2xl p-5 flex justify-between items-center">
-                                    <h4 class="font-bold text-white text-sm">${m.title}</h4>
-                                    <button onclick="app.deleteMatch('${m.id}')" class="bg-red-500/10 text-red-400 text-xs font-bold px-3 py-2 rounded-xl">Supprimer</button>
+                                    <div>
+                                        <div class="flex items-center gap-2 mb-1">
+                                            <span class="text-xs font-bold text-goalred">${m.format}</span>
+                                            <span class="text-xs text-zinc-400">${m.dateFull} (${m.time})</span>
+                                        </div>
+                                        <h4 class="font-bold text-white text-sm">${m.title} — ${m.location} (${m.price.toLocaleString()} FCFA)</h4>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <button onclick="app.navigateTo('admin-match-edit', { matchId: '${m.id}' })" class="bg-goalred text-white text-xs font-bold px-3 py-2.5 rounded-xl"><i class="fa-solid fa-pen"></i></button>
+                                        <button onclick="app.deleteMatch('${m.id}')" class="bg-red-500/10 text-red-400 text-xs font-bold px-3 py-2.5 rounded-xl"><i class="fa-solid fa-trash"></i></button>
+                                    </div>
                                 </div>
                             `).join('')}
                         </div>
@@ -565,34 +568,141 @@
                 `;
             }
 
-            deleteMatch(matchId) {
-                this.state.matches = this.state.matches.filter(m => m.id !== matchId);
+            openCreateMatchModal() {
+                const modal = document.getElementById('system-modal');
+                const content = document.getElementById('modal-content');
+                modal.classList.remove('hidden');
+
+                content.innerHTML = `
+                    <h3 class="text-xl font-black text-white mb-4">Créer un nouveau match</h3>
+                    <form onsubmit="app.createMatchSubmit(event)" class="space-y-3 text-xs">
+                        <div><label class="block text-zinc-400 mb-1">Titre</label><input type="text" id="cr-title" required placeholder="GOALUP NIGHT - ALMADIES" class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div><label class="block text-zinc-400 mb-1">Date (YYYY-MM-DD)</label><input type="date" id="cr-dateraw" required value="2026-10-15" class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
+                            <div><label class="block text-zinc-400 mb-1">Heure</label><input type="text" id="cr-time" required value="21:00" class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
+                        </div>
+                        <div><label class="block text-zinc-400 mb-1">Lieu</label><input type="text" id="cr-loc" required placeholder="Terrain Almadies" class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div><label class="block text-zinc-400 mb-1">Format</label><input type="text" id="cr-format" required value="7v7" class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
+                            <div><label class="block text-zinc-400 mb-1">Prix (FCFA)</label><input type="number" id="cr-price" required value="3000" class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
+                        </div>
+                        <div><label class="block text-zinc-400 mb-1">Description</label><textarea id="cr-desc" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white">Match intense sur gazon synthétique.</textarea></div>
+                        <button type="submit" class="w-full bg-goalred text-white font-bold py-3.5 rounded-xl shadow-lg mt-2">Publier le match</button>
+                    </form>
+                `;
+            }
+
+            createMatchSubmit(e) {
+                e.preventDefault();
+                const newM = {
+                    id: "m_" + Date.now(),
+                    title: document.getElementById('cr-title').value,
+                    dateRaw: document.getElementById('cr-dateraw').value,
+                    dateFull: "Match Dakar",
+                    time: document.getElementById('cr-time').value,
+                    duration: "1h30",
+                    location: document.getElementById('cr-loc').value,
+                    address: "Dakar",
+                    format: document.getElementById('cr-format').value,
+                    level: "Intermédiaire",
+                    maxPlayers: 16,
+                    minPlayers: 10,
+                    currentPlayers: 0,
+                    price: parseInt(document.getElementById('cr-price').value),
+                    status: "Ouvert",
+                    description: document.getElementById('cr-desc').value,
+                    organizer: { name: "Omar G.", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80" },
+                    registeredUsers: [],
+                    messages: [],
+                    welcomeMessages: {}
+                };
+                this.state.matches.push(newM);
                 this.saveToStorage();
+                this.closeModal();
+                alert("Match créé avec succès !");
                 this.navigateTo('admin-matches');
+            }
+
+            renderAdminMatchEditView(matchId) {
+                const m = this.state.matches.find(item => item.id === matchId);
+                if(!m) return `<div class="p-12 text-center text-zinc-400">Match introuvable.</div>`;
+
+                return `
+                    <div class="space-y-6 max-w-xl mx-auto">
+                        <button onclick="app.navigateTo('admin-matches')" class="text-xs text-zinc-400 hover:text-white"><i class="fa-solid fa-arrow-left"></i> Retour</button>
+                        <div class="bg-goalCard border border-goalBorder rounded-3xl p-6 sm:p-8 shadow-2xl">
+                            <h2 class="text-xl font-black text-white mb-6">Éditer le match</h2>
+                            <form onsubmit="app.saveMatchEdits(event, '${m.id}')" class="space-y-4 text-xs">
+                                <div><label class="block text-zinc-400 mb-1">Titre</label><input type="text" id="ed-title" value="${m.title}" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div><label class="block text-zinc-400 mb-1">Date</label><input type="date" id="ed-dateraw" value="${m.dateRaw}" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
+                                    <div><label class="block text-zinc-400 mb-1">Heure</label><input type="text" id="ed-time" value="${m.time}" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div><label class="block text-zinc-400 mb-1">Prix (FCFA)</label><input type="number" id="ed-price" value="${m.price}" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
+                                    <div><label class="block text-zinc-400 mb-1">Lieu</label><input type="text" id="ed-loc" value="${m.location}" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
+                                </div>
+                                <button type="submit" class="w-full bg-goalred text-white font-bold py-3.5 rounded-xl shadow-lg mt-2">Enregistrer</button>
+                            </form>
+                        </div>
+                    </div>
+                `;
+            }
+
+            saveMatchEdits(e, matchId) {
+                e.preventDefault();
+                const m = this.state.matches.find(item => item.id === matchId);
+                if(m) {
+                    m.title = document.getElementById('ed-title').value;
+                    m.dateRaw = document.getElementById('ed-dateraw').value;
+                    m.time = document.getElementById('ed-time').value;
+                    m.price = parseInt(document.getElementById('ed-price').value);
+                    m.location = document.getElementById('ed-loc').value;
+                    this.saveToStorage();
+                    alert("Match mis à jour !");
+                    this.navigateTo('admin-matches');
+                }
+            }
+
+            deleteMatch(matchId) {
+                if(confirm("Supprimer ce match ?")) {
+                    this.state.matches = this.state.matches.filter(m => m.id !== matchId);
+                    this.saveToStorage();
+                    this.navigateTo('admin-matches');
+                }
             }
 
             renderAdminPlayersView() {
                 const players = Object.values(this.state.usersDatabase).filter(u => !u.isAdmin);
                 return `
                     <div class="space-y-6">
-                        <button onclick="app.navigateTo('admin-dashboard')" class="text-xs text-zinc-400"><i class="fa-solid fa-arrow-left"></i> Retour</button>
+                        <button onclick="app.navigateTo('admin-dashboard')" class="text-xs text-zinc-400 hover:text-white"><i class="fa-solid fa-arrow-left"></i> Retour Dashboard</button>
                         <h2 class="text-xl font-black text-white">Gestion des Joueurs</h2>
                         <div class="space-y-3">
-                            ${players.map(p => `
+                            ${players.length ? players.map(p => `
                                 <div class="bg-goalCard border border-goalBorder rounded-2xl p-5 flex items-center justify-between">
-                                    <div><h4 class="font-bold text-white text-sm">${p.firstName}${p.lastName}</h4><span class="text-xs text-zinc-400">${p.email}</span></div>
-                                    <button onclick="app.banPlayer('${p.email}')" class="bg-red-500/10 text-red-400 text-xs font-bold px-3 py-2 rounded-xl">Bannir</button>
+                                    <div class="flex items-center gap-4">
+                                        <img src="${p.avatar}" class="w-12 h-12 rounded-full object-cover">
+                                        <div>
+                                            <h4 class="font-bold text-white text-sm">${p.firstName}${p.lastName}</h4>
+                                            <span class="text-xs text-zinc-400 block">${p.email} •${p.phone}</span>
+                                        </div>
+                                    </div>
+                                    <button onclick="app.banPlayer('${p.email}')" class="bg-red-500/10 text-red-400 text-xs font-bold px-3 py-2.5 rounded-xl"><i class="fa-solid fa-ban"></i> Bannir</button>
                                 </div>
-                            `).join('')}
+                            `).join('') : '<p class="text-xs text-zinc-500 text-center py-12">Aucun joueur inscrit pour le moment.</p>'}
                         </div>
                     </div>
                 `;
             }
 
             banPlayer(email) {
-                delete this.state.usersDatabase[email];
-                this.saveToStorage();
-                this.navigateTo('admin-players');
+                if(confirm("Voulez-vous vraiment supprimer cet utilisateur ?")) {
+                    delete this.state.usersDatabase[email];
+                    this.saveToStorage();
+                    alert("Utilisateur supprimé.");
+                    this.navigateTo('admin-players');
+                }
             }
 
             renderLoginPrompt() {
