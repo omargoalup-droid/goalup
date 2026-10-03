@@ -94,20 +94,17 @@
                             level: "Intermédiaire",
                             maxPlayers: 16,
                             minPlayers: 10,
-                            currentPlayers: 2,
+                            currentPlayers: 1,
                             price: 3000,
                             status: "Ouvert",
                             description: "Match intense sur gazon synthétique de haute qualité. Chasubles et ballons fournis.",
                             organizer: { name: "Omar G.", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80" },
-                            registeredUsers: ["usr_02", "usr_03"],
+                            registeredUsers: [],
                             messages: [],
                             welcomeMessages: {}
                         }
                     ],
-                    playersDirectory: {
-                        "usr_02": { id: "usr_02", firstName: "Mamadou", lastName: "Diallo", email: "mamadou@goalup.sn", phone: "+221 77 111 22 33", credits: 5000, position: "Attaquant", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80" },
-                        "usr_03": { id: "usr_03", firstName: "Cheikh", lastName: "Ndiaye", email: "cheikh@goalup.sn", phone: "+221 76 444 55 66", credits: 0, position: "Défenseur", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80" }
-                    }
+                    playersDirectory: {}
                 };
                 this.navigateTo('matches');
             }
@@ -306,13 +303,13 @@
                     <div class="space-y-6">
                         <h1 class="text-3xl font-black text-white">Mes Messages & Notifications</h1>
                         <div class="space-y-4">
-                            ${userMatches.map(m => `
+                            ${userMatches.length ? userMatches.map(m => `
                                 <div class="bg-goalCard border border-goalBorder rounded-3xl p-6 shadow-xl space-y-3">
                                     <h3 class="font-bold text-white text-sm">${m.title}</h3>
                                     <p class="text-xs text-zinc-300">${m.welcomeMessages[u.id] || "Rappel de match."}</p>
                                     <button onclick="app.navigateTo('game-chat', { matchId: '${m.id}' })" class="bg-goalred text-white font-bold px-4 py-2 rounded-xl text-xs">Ouvrir le Chat</button>
                                 </div>
-                            `).join('')}
+                            `).join('') : `<p class="text-xs text-zinc-500 text-center py-12">Aucun message pour le moment.</p>`}
                         </div>
                     </div>
                 `;
@@ -342,7 +339,7 @@
                         <p class="text-xs text-zinc-400">Espace exclusif réservé au fondateur (Omar).</p>
                         <div class="bg-goalCard border border-goalBorder p-6 rounded-3xl space-y-3">
                             <h3 class="text-lg font-bold text-white">Gestion de GOALUP Dakar</h3>
-                            <p class="text-xs text-zinc-400">Accès validé pour l'e-mail : <strong class="text-white">${this.state.user.email}</strong></p>
+                            <p class="text-xs text-zinc-400">Connecté en tant que : <strong class="text-white">${this.state.user.email}</strong></p>
                         </div>
                     </div>
                 `;
@@ -366,8 +363,8 @@
                                 <input type="text" id="auth-ln" placeholder="Nom" required class="bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white">
                             </div>
                         ` : ''}
-                        <input type="email" id="auth-email" placeholder="Email (ex: omar.goalup@gmail.com)" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white">
-                        <input type="password" id="auth-pwd" placeholder="Mot de passe (admin: 1234)" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white">
+                        <input type="email" id="auth-email" placeholder="Votre email" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white">
+                        <input type="password" id="auth-pwd" placeholder="Votre mot de passe" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white">
                         <button type="submit" class="w-full bg-goalred text-white font-bold py-3.5 rounded-xl text-sm shadow-lg mt-2">Valider</button>
                     </form>
                 `;
@@ -377,14 +374,14 @@
                 e.preventDefault();
                 const email = document.getElementById('auth-email').value.trim().toLowerCase();
                 const pwd = document.getElementById('auth-pwd').value;
-                const fn = mode === 'register' ? document.getElementById('auth-fn').value : (email === 'omar.goalup@gmail.com' ? 'Omar' : 'Joueur');
+                const fn = mode === 'register' ? document.getElementById('auth-fn').value : (email === 'omar.goalup@gmail.com' ? 'Omar' : 'Membre');
                 const ln = mode === 'register' ? document.getElementById('auth-ln').value : 'GoalUp';
 
-                // Sécurité stricte : Seul omar.goalup.com avec le mot de passe 1234 accède à l'admin
+                // Vérification sécurisée en arrière-plan
                 const isAdmin = (email === "omar.goalup@gmail.com" && pwd === "1234");
 
                 if(email === "omar.goalup@gmail.com" && pwd !== "1234") {
-                    alert("Mot de passe incorrect pour le compte administrateur ! (Indice: 1234)");
+                    alert("Mot de passe incorrect.");
                     return;
                 }
 
@@ -401,7 +398,7 @@
                 };
 
                 this.closeModal();
-                alert(isAdmin ? "Connexion administrateur réussie !" : "Connexion réussie !");
+                alert(isAdmin ? "Bienvenue dans l'espace Administrateur !" : "Connexion réussie !");
                 this.navigateTo('matches');
             }
 
