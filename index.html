@@ -2,7 +2,7 @@
 <html lang="fr" class="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>GOALUP — Application Officielle Dakar</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -25,7 +25,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { font-family: 'Montserrat', sans-serif; background-color: #060608; color: #f4f4f5; min-height: 100vh; }
+        body { font-family: 'Montserrat', sans-serif; background-color: #060608; color: #f4f4f5; min-height: 100vh; overflow-x: hidden; }
         input, select, textarea { color-scheme: dark; }
     </style>
 </head>
@@ -33,7 +33,7 @@
 
     <!-- HEADER SÉCURISÉ -->
     <header class="sticky top-0 z-50 bg-[#060608]/95 backdrop-blur-md border-b border-goalBorder">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
+        <div class="max-w-6xl mx-auto px-4 h-20 flex items-center justify-between">
             <div class="flex items-center space-x-3 cursor-pointer group" onclick="app.navigateTo('matches')">
                 <span class="text-xl font-black tracking-wider text-white">GOAL<span class="text-goalred">UP</span></span>
                 <span class="text-[10px] uppercase font-bold tracking-widest text-zinc-500 border-l border-goalBorder pl-3 hidden sm:inline-block">Dakar</span>
@@ -46,20 +46,20 @@
 
     <div id="mobile-nav" class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#111115] border-t border-goalBorder flex justify-around py-3 px-2"></div>
 
-    <main id="app-container" class="flex-grow pb-28 md:pb-16 pt-6 px-4 sm:px-6 max-w-6xl mx-auto w-full"></main>
+    <main id="app-container" class="flex-grow pb-32 md:pb-16 pt-6 px-4 max-w-6xl mx-auto w-full"></main>
 
     <!-- MODAL -->
     <div id="system-modal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm hidden flex items-center justify-center p-4">
-        <div class="bg-goalCard border border-goalBorder rounded-3xl w-full max-w-md p-6 sm:p-8 relative shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div class="bg-goalCard border border-goalBorder rounded-3xl w-full max-w-md p-6 relative shadow-2xl max-h-[90vh] overflow-y-auto">
             <button onclick="app.closeModal()" class="absolute top-5 right-5 text-zinc-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
             <div id="modal-content"></div>
         </div>
     </div>
 
-    <footer class="border-t border-goalBorder bg-[#060608] py-8 px-4 text-center text-xs text-zinc-500">
+    <footer class="border-t border-goalBorder bg-[#060608] py-8 px-4 text-center text-xs text-zinc-500 mb-16 md:mb-0">
         <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-            <span class="font-bold tracking-wider text-zinc-400">GOAL<span class="text-goalred">UP</span> SÉNÉGAL S.A.</span>
-            <p>« Chaque match compte. » — Dakar, Sénégal[cite: 5]</p>
+            <span class="font-bold tracking-wider text-zinc-400">GOALUP SÉNÉGAL S.A.</span>
+            <p>« Chaque match compte. » — Dakar, Sénégal</p>
             <span class="text-zinc-600">&copy; 2026 Tous droits réservés</span>
         </div>
     </footer>
@@ -74,7 +74,6 @@
                         id: null, firstName: "", lastName: "", email: "", phone: "", credits: 0, avatar: "", isAdmin: false, isAuthenticated: false
                     },
                     matches: JSON.parse(localStorage.getItem('goalup_matches')) || [],
-                    // COMPTE ADMIN UNIQUEMENT : Tous les autres comptes ont été purgés
                     usersDatabase: JSON.parse(localStorage.getItem('goalup_users_db')) || {
                         "omar.goalup@gmail.com": {
                             id: "usr_admin", firstName: "Omar", lastName: "GoalUp", email: "omar.goalup@gmail.com", phone: "+221 77 823 44 55", password: "47749669", credits: 50000, avatar: "", isAdmin: true
@@ -130,6 +129,14 @@
                 }
             }
 
+            renderAvatar(user, sizeClass = "w-8 h-8", textClass = "text-xs") {
+                if (user && user.avatar && user.avatar.trim() !== "") {
+                    return `<img src="${user.avatar}" class="${sizeClass} rounded-full object-cover border border-goalred">`;
+                }
+                const initial = user && user.firstName ? user.firstName.charAt(0).toUpperCase() : "?";
+                return `<div class="${sizeClass} rounded-full bg-goalred/20 border border-goalred flex items-center justify-center ${textClass} font-bold text-white shrink-0">${initial}</div>`;
+            }
+
             renderHeader() {
                 const headerNav = document.getElementById('header-nav');
                 const headerUser = document.getElementById('header-user-area');
@@ -145,11 +152,11 @@
 
                 if(u.isAuthenticated) {
                     headerUser.innerHTML = `
-                        <div class="flex items-center gap-3">
-                            <button onclick="app.navigateTo('profile')" class="flex items-center gap-2.5 bg-goalCard hover:bg-goalCardHover border border-goalBorder px-3.5 py-1.5 rounded-full transition group">
-                                <div class="w-8 h-8 rounded-full bg-goalred/20 border border-goalred flex items-center justify-center text-xs font-bold text-white">${u.firstName.charAt(0)}</div>
-                                <span class="text-xs font-bold text-white group-hover:text-goalred transition hidden sm:inline">${u.firstName}</span>
-                                <span class="text-[10px] ${u.isAdmin ? 'text-goalred font-black' : 'text-zinc-400'} bg-goalred/10 px-2 py-0.5 rounded-md ml-1">${u.isAdmin ? 'ADMIN' : u.credits.toLocaleString() + ' F'}</span>
+                        <div class="flex items-center gap-2">
+                            <button onclick="app.navigateTo('profile')" class="flex items-center gap-2 bg-goalCard hover:bg-goalCardHover border border-goalBorder px-3 py-1.5 rounded-full transition group">
+                                ${this.renderAvatar(u, "w-7 h-7", "text-xs")}
+                                <span class="text-xs font-bold text-white group-hover:text-goalred transition truncate max-w-[80px] sm:max-w-none">${u.firstName}</span>
+                                <span class="text-[10px] ${u.isAdmin ? 'text-goalred font-black' : 'text-zinc-400'} bg-goalred/10 px-1.5 py-0.5 rounded-md ml-0.5 hidden sm:inline">${u.isAdmin ? 'ADMIN' : u.credits.toLocaleString() + ' F'}</span>
                             </button>
                         </div>
                     `;
@@ -161,9 +168,9 @@
                     `;
                 } else {
                     headerUser.innerHTML = `
-                        <div class="flex items-center gap-3">
-                            <button onclick="app.openAuthModal('login')" class="text-xs font-bold text-zinc-300 hover:text-white px-3 py-2">Connexion</button>
-                            <button onclick="app.openAuthModal('register')" class="text-xs font-bold bg-goalred hover:bg-red-700 text-white px-4 py-2.5 rounded-xl transition shadow-lg shadow-goalred/20">Rejoindre</button>
+                        <div class="flex items-center gap-2">
+                            <button onclick="app.openAuthModal('login')" class="text-xs font-bold text-zinc-300 hover:text-white px-2 py-1.5">Connexion</button>
+                            <button onclick="app.openAuthModal('register')" class="text-xs font-bold bg-goalred hover:bg-red-700 text-white px-3 py-2 rounded-xl transition shadow-lg">Rejoindre</button>
                         </div>
                     `;
                     mobileNav.innerHTML = `
@@ -179,14 +186,14 @@
                         <div class="space-y-8 py-12">
                             <div>
                                 <div class="flex items-center gap-2 text-xs font-bold text-goalred uppercase tracking-wider mb-1">
-                                    <i class="fa-solid fa-location-dot"></i> <span>Dakar, Sénégal[cite: 5]</span>
+                                    <i class="fa-solid fa-location-dot"></i> <span>Dakar, Sénégal</span>
                                 </div>
                                 <h1 class="text-3xl sm:text-4xl font-black text-white tracking-tight">Matchs à venir</h1>
                             </div>
-                            <div class="bg-goalCard border border-goalBorder rounded-3xl p-12 text-center space-y-4 shadow-xl">
+                            <div class="bg-goalCard border border-goalBorder rounded-3xl p-8 sm:p-12 text-center space-y-4 shadow-xl">
                                 <i class="fa-solid fa-futbol text-4xl text-zinc-600"></i>
                                 <h3 class="text-lg font-bold text-white">Aucun match programmé pour le moment</h3>
-                                <p class="text-xs text-zinc-400 max-w-sm mx-auto">Reviens un peu plus tard ou connecte-toi en administrateur pour créer et publier de nouvelles sessions à Dakar[cite: 5].</p>
+                                <p class="text-xs text-zinc-400 max-w-sm mx-auto">Reviens un peu plus tard ou connecte-toi en administrateur pour créer et publier de nouvelles sessions à Dakar.</p>
                                 ${this.state.user.isAdmin ? `<button onclick="app.navigateTo('admin-matches')" class="bg-goalred text-white font-bold px-6 py-3 rounded-xl text-xs mt-2 inline-block shadow-lg">Créer un match</button>` : ''}
                             </div>
                         </div>
@@ -197,7 +204,7 @@
                     <div class="space-y-8">
                         <div>
                             <div class="flex items-center gap-2 text-xs font-bold text-goalred uppercase tracking-wider mb-1">
-                                <i class="fa-solid fa-location-dot"></i> <span>Dakar, Sénégal[cite: 5]</span>
+                                <i class="fa-solid fa-location-dot"></i> <span>Dakar, Sénégal</span>
                             </div>
                             <h1 class="text-3xl sm:text-4xl font-black text-white tracking-tight">Matchs à venir</h1>
                         </div>
@@ -208,28 +215,28 @@
                                 const count = m.registeredUsers.length;
                                 const percent = Math.min(100, Math.round((count / m.maxPlayers) * 100));
                                 return `
-                                    <div onclick="app.navigateTo('match-detail', { matchId: '${m.id}' })" class="bg-goalCard border border-goalBorder hover:border-zinc-700 rounded-3xl p-6 cursor-pointer transition group shadow-lg space-y-4">
-                                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                    <div onclick="app.navigateTo('match-detail', { matchId: '${m.id}' })" class="bg-goalCard border border-goalBorder hover:border-zinc-700 rounded-3xl p-5 sm:p-6 cursor-pointer transition group shadow-lg space-y-4">
+                                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                             <div class="flex items-start gap-4">
-                                                <div class="bg-[#18181d] border border-goalBorder px-4 py-3 rounded-2xl text-center shrink-0">
+                                                <div class="bg-[#18181d] border border-goalBorder px-3.5 py-3 rounded-2xl text-center shrink-0">
                                                     <span class="text-[10px] text-zinc-400 block uppercase font-bold">Date</span>
-                                                    <span class="text-sm font-black text-white">${m.dateRaw.split('-').reverse().join('/')}</span>
+                                                    <span class="text-xs sm:text-sm font-black text-white">${m.dateRaw.split('-').reverse().join('/')}</span>
                                                 </div>
                                                 <div class="space-y-1">
                                                     <div class="flex items-center gap-2">
                                                         <span class="bg-goalred text-white text-[10px] font-extrabold px-2.5 py-0.5 rounded-md">${m.format}</span>
                                                         <span class="text-xs text-zinc-400 font-semibold">• ${m.level}</span>
                                                     </div>
-                                                    <h3 class="text-xl font-bold text-white group-hover:text-goalred transition">${m.title}</h3>
+                                                    <h3 class="text-lg sm:text-xl font-bold text-white group-hover:text-goalred transition">${m.title}</h3>
                                                     <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-zinc-400 pt-1">
                                                         <span><i class="fa-regular fa-clock text-goalred mr-1"></i> ${m.time} (${m.duration})</span>
                                                         <span><i class="fa-solid fa-location-dot text-goalred mr-1"></i> ${m.location}</span>
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div class="text-right">
-                                                <span class="text-xl font-black text-white block">${m.price.toLocaleString()} FCFA</span>
-                                                <span class="text-xs font-bold bg-white text-black px-4 py-2 rounded-xl inline-block mt-2 group-hover:bg-goalred group-hover:text-white transition">Voir match</span>
+                                            <div class="flex sm:flex-col justify-between sm:text-right items-center sm:items-end pt-2 sm:pt-0 border-t sm:border-0 border-goalBorder">
+                                                <span class="text-lg sm:text-xl font-black text-white">${m.price.toLocaleString()} FCFA</span>
+                                                <span class="text-xs font-bold bg-white text-black px-3.5 py-1.5 sm:mt-2 rounded-xl group-hover:bg-goalred group-hover:text-white transition">Voir</span>
                                             </div>
                                         </div>
                                         <div class="space-y-1.5 pt-2 border-t border-goalBorder">
@@ -259,7 +266,7 @@
                 const percent = Math.min(100, Math.round((count / m.maxPlayers) * 100));
 
                 const registeredProfiles = m.registeredUsers.map(uid => {
-                    return Object.values(this.state.usersDatabase).find(usr => usr.id === uid) || { firstName: "Joueur", lastName: "GOALUP" };
+                    return Object.values(this.state.usersDatabase).find(usr => usr.id === uid) || { firstName: "Joueur", lastName: "GOALUP", avatar: "" };
                 });
 
                 return `
@@ -269,7 +276,7 @@
                         <div class="bg-goalCard border border-goalBorder rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
                             <div class="space-y-2">
                                 <span class="bg-goalred text-white text-[10px] font-extrabold px-3 py-1 rounded-md">${m.format} • ${m.level}</span>
-                                <h1 class="text-3xl font-black text-white">${m.title}</h1>
+                                <h1 class="text-2xl sm:text-3xl font-black text-white">${m.title}</h1>
                                 <p class="text-xs text-zinc-400"><i class="fa-solid fa-location-dot text-goalred mr-1"></i> ${m.location} • <i class="fa-regular fa-clock text-goalred ml-2 mr-1"></i> ${m.dateRaw} à ${m.time}</p>
                             </div>
 
@@ -290,7 +297,7 @@
                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                     ${registeredProfiles.length ? registeredProfiles.map(p => `
                                         <div class="flex items-center gap-3 bg-[#18181d] border border-goalBorder p-3 rounded-2xl">
-                                            <div class="w-8 h-8 rounded-full bg-goalred/20 border border-goalred flex items-center justify-center text-xs font-bold text-white">${p.firstName.charAt(0)}</div>
+                                            ${this.renderAvatar(p, "w-8 h-8", "text-xs")}
                                             <span class="text-xs font-bold text-white">${p.firstName}${p.lastName}</span>
                                         </div>
                                     `).join('') : `<p class="text-xs text-zinc-500 italic py-2">Aucun joueur inscrit pour le moment. Sois le premier !</p>`}
@@ -425,6 +432,7 @@
                             </div>
                             <input type="email" id="reg-email" placeholder="Email" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white">
                             <input type="tel" id="reg-phone" placeholder="Téléphone (+221 77...)" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white">
+                            <input type="text" id="reg-avatar" placeholder="URL de votre photo de profil (facultatif)" class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white">
                             <input type="password" id="reg-pwd" placeholder="Créer un mot de passe" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white">
                             <button type="submit" class="w-full bg-goalred text-white font-bold py-3.5 rounded-xl text-sm shadow-lg mt-2">Créer mon compte</button>
                         </form>
@@ -456,6 +464,7 @@
                 const ln = document.getElementById('reg-ln').value.trim();
                 const email = document.getElementById('reg-email').value.trim().toLowerCase();
                 const phone = document.getElementById('reg-phone').value.trim();
+                const avatar = document.getElementById('reg-avatar').value.trim();
                 const pwd = document.getElementById('reg-pwd').value;
 
                 if (this.state.usersDatabase[email]) {
@@ -471,7 +480,7 @@
                     phone: phone,
                     password: pwd,
                     credits: 0,
-                    avatar: "",
+                    avatar: avatar,
                     isAdmin: false
                 };
 
@@ -486,28 +495,27 @@
             renderProfileView() {
                 const u = this.state.user;
                 return `
-                    <div class="space-y-6 max-w-xl mx-auto bg-goalCard border border-goalBorder p-8 rounded-3xl shadow-2xl">
+                    <div class="space-y-6 max-w-xl mx-auto bg-goalCard border border-goalBorder p-6 sm:p-8 rounded-3xl shadow-2xl">
                         <div class="flex justify-between items-center">
                             <h1 class="text-2xl font-black text-white">Mon Profil</h1>
                             <button onclick="app.logout()" class="text-xs font-bold text-red-400 bg-red-500/10 px-4 py-2 rounded-xl">Se déconnecter</button>
                         </div>
 
                         <div class="flex items-center gap-5 pb-6 border-b border-goalBorder">
-                            <div class="w-20 h-20 rounded-full bg-goalred/20 border-2 border-goalred flex items-center justify-center text-2xl font-black text-white">${u.firstName.charAt(0)}</div>
-                            <div class="space-y-2">
-                                <h3 class="text-lg font-bold text-white">${u.firstName} ${u.lastName}</h3>
+                            ${this.renderAvatar(u, "w-16 h-16 sm:w-20 sm:h-20", "text-2xl")}
+                            <div class="space-y-2 truncate">
+                                <h3 class="text-base sm:text-lg font-bold text-white truncate">${u.firstName} ${u.lastName}</h3>
                                 <button onclick="app.openEditProfileModal()" class="bg-goalred hover:bg-red-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition">Modifier mon profil</button>
                             </div>
                         </div>
 
                         <div class="space-y-3 text-xs">
-                            <p class="text-zinc-300"><strong>Email :</strong> ${u.email}</p>
+                            <p class="text-zinc-300 truncate"><strong>Email :</strong> ${u.email}</p>
                             <p class="text-zinc-300"><strong>Téléphone :</strong> ${u.phone}</p>
                             <p class="text-zinc-300"><strong>Crédits GOALUP disponibles :</strong> <strong class="text-goalred text-sm">${u.credits.toLocaleString()} FCFA</strong></p>
                             <p class="text-zinc-300"><strong>Statut :</strong> ${u.isAdmin ? 'Fondateur / Administrateur' : 'Membre'}</p>
                         </div>
 
-                        <!-- Option de suppression de son propre compte -->
                         <div class="pt-6 border-t border-goalBorder">
                             <button onclick="app.deleteMyAccount()" class="w-full bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold py-3 rounded-xl text-xs transition border border-red-500/30">
                                 <i class="fa-solid fa-triangle-exclamation mr-1"></i> Supprimer définitivement mon compte
@@ -525,7 +533,6 @@
                 }
                 if(confirm("Attention : Voulez-vous vraiment supprimer définitivement votre compte GOALUP ? Cette action est irréversible.")) {
                     delete this.state.usersDatabase[u.email];
-                    // Retirer l'utilisateur de tous les matchs où il était inscrit
                     this.state.matches.forEach(m => {
                         m.registeredUsers = m.registeredUsers.filter(id => id !== u.id);
                     });
@@ -549,6 +556,7 @@
                             <div><label class="block text-zinc-400 mb-1">Nom</label><input type="text" id="up-ln" value="${u.lastName}" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
                         </div>
                         <div><label class="block text-zinc-400 mb-1">Téléphone</label><input type="tel" id="up-phone" value="${u.phone}" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
+                        <div><label class="block text-zinc-400 mb-1">URL de la photo de profil</label><input type="text" id="up-avatar" value="${u.avatar || ''}" placeholder="https://..." class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
                         <button type="submit" class="w-full bg-goalred text-white font-bold py-3.5 rounded-xl shadow-lg mt-2">Enregistrer</button>
                     </form>
                 `;
@@ -560,6 +568,7 @@
                 u.firstName = document.getElementById('up-fn').value.trim();
                 u.lastName = document.getElementById('up-ln').value.trim();
                 u.phone = document.getElementById('up-phone').value.trim();
+                u.avatar = document.getElementById('up-avatar').value.trim();
 
                 if(this.state.usersDatabase[u.email]) {
                     this.state.usersDatabase[u.email] = { ...this.state.usersDatabase[u.email], ...u };
@@ -635,7 +644,7 @@
                             <div onclick="app.navigateTo('admin-matches')" class="bg-goalCard border border-goalBorder hover:border-goalred rounded-3xl p-6 cursor-pointer transition shadow-xl group">
                                 <div class="w-12 h-12 rounded-2xl bg-goalred/10 flex items-center justify-center text-goalred text-xl mb-4 group-hover:scale-110 transition"><i class="fa-solid fa-futbol"></i></div>
                                 <h3 class="text-xl font-bold text-white mb-2">Section Matchs</h3>
-                                <p class="text-xs text-zinc-400">Créer, éditer, supprimer des sessions de match à Dakar[cite: 5].</p>
+                                <p class="text-xs text-zinc-400">Créer, éditer, supprimer des sessions de match à Dakar.</p>
                             </div>
                             <div onclick="app.navigateTo('admin-players')" class="bg-goalCard border border-goalBorder hover:border-goalred rounded-3xl p-6 cursor-pointer transition shadow-xl group">
                                 <div class="w-12 h-12 rounded-2xl bg-goalred/10 flex items-center justify-center text-goalred text-xl mb-4 group-hover:scale-110 transition"><i class="fa-solid fa-users"></i></div>
@@ -780,7 +789,7 @@
                             ${players.length ? players.map(p => `
                                 <div class="bg-goalCard border border-goalBorder rounded-2xl p-5 flex items-center justify-between">
                                     <div class="flex items-center gap-4">
-                                        <div class="w-12 h-12 rounded-full bg-goalred/20 border border-goalred flex items-center justify-center text-base font-bold text-white">${p.firstName.charAt(0)}</div>
+                                        ${this.renderAvatar(p, "w-12 h-12", "text-base")}
                                         <div>
                                             <h4 class="font-bold text-white text-sm">${p.firstName}${p.lastName}</h4>
                                             <span class="text-xs text-zinc-400 block">${p.email} •${p.credits.toLocaleString()} F de crédits</span>
@@ -810,6 +819,7 @@
                                 <div><label class="block text-zinc-400 mb-1">Prénom</label><input type="text" id="adm-fn" value="${p.firstName}" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
                                 <div><label class="block text-zinc-400 mb-1">Nom</label><input type="text" id="adm-ln" value="${p.lastName}" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
                                 <div><label class="block text-zinc-400 mb-1">Crédits GOALUP (FCFA)</label><input type="number" id="adm-credits" value="${p.credits}" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
+                                <div><label class="block text-zinc-400 mb-1">URL de la photo de profil</label><input type="text" id="adm-avatar" value="${p.avatar || ''}" placeholder="https://..." class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
                                 <button type="submit" class="w-full bg-goalred text-white font-bold py-3.5 rounded-xl shadow-lg mt-2">Enregistrer les modifications</button>
                             </form>
                         </div>
@@ -824,6 +834,7 @@
                     p.firstName = document.getElementById('adm-fn').value.trim();
                     p.lastName = document.getElementById('adm-ln').value.trim();
                     p.credits = parseInt(document.getElementById('adm-credits').value);
+                    p.avatar = document.getElementById('adm-avatar').value.trim();
                     this.saveToStorage();
                     alert("Profil du joueur mis à jour avec succès !");
                     this.navigateTo('admin-players');
