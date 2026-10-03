@@ -16,8 +16,7 @@
                         goalCard: '#111115',
                         goalCardHover: '#18181d',
                         goalBorder: '#22222b',
-                        waveBlue: '#1EBBEE',
-                        orangeMoney: '#FF6600'
+                        waveBlue: '#1EBBEE'
                     }
                 }
             }
@@ -72,7 +71,7 @@
                     currentView: 'matches',
                     params: {},
                     user: JSON.parse(localStorage.getItem('goalup_current_user')) || {
-                        id: null, firstName: "", lastName: "", email: "", phone: "", credits: 0, avatar: "", isAdmin: false, isAuthenticated: false
+                        id: null, firstName: "", lastName: "", email: "", phone: "", avatar: "", isAdmin: false, isAuthenticated: false
                     },
                     matches: JSON.parse(localStorage.getItem('goalup_matches')) || [
                         {
@@ -100,18 +99,16 @@
                     ],
                     usersDatabase: JSON.parse(localStorage.getItem('goalup_users_db')) || {
                         "omar.goalup@gmail.com": {
-                            id: "usr_admin", firstName: "Omar", lastName: "GoalUp", email: "omar.goalup@gmail.com", phone: "+221 77 823 44 55", password: "47749669", credits: 999999, avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80", isAdmin: true
+                            id: "usr_admin", firstName: "Omar", lastName: "GoalUp", email: "omar.goalup@gmail.com", phone: "+221 77 823 44 55", password: "47749669", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80", isAdmin: true
                         }
                     }
                 };
 
-                // Vérifier si l'utilisateur revient d'un paiement réussi via l'URL (ex: ?payment=success&matchId=m_01)
+                // Gestion du retour de paiement Wave
                 const urlParams = new URLSearchParams(window.location.search);
                 if(urlParams.get('payment') === 'success' && urlParams.get('matchId')) {
                     const matchId = urlParams.get('matchId');
-                    // Nettoyer l'URL
                     window.history.replaceState({}, document.title, window.location.pathname);
-                    // Valider la réservation en différé si l'utilisateur est connecté
                     setTimeout(() => {
                         if(this.state.user.isAuthenticated) {
                             this.confirmBooking(matchId);
@@ -150,7 +147,6 @@
                     case 'admin-matches': container.innerHTML = this.state.user.isAdmin ? this.renderAdminMatchesView() : this.renderMatchesView(); break;
                     case 'admin-match-edit': container.innerHTML = this.state.user.isAdmin ? this.renderAdminMatchEditView(this.state.params.matchId) : this.renderMatchesView(); break;
                     case 'admin-players': container.innerHTML = this.state.user.isAdmin ? this.renderAdminPlayersView() : this.renderMatchesView(); break;
-                    case 'admin-player-edit': container.innerHTML = this.state.user.isAdmin ? this.renderAdminPlayerEditView(this.state.params.playerId) : this.renderMatchesView(); break;
 
                     default: container.innerHTML = this.renderMatchesView();
                 }
@@ -173,9 +169,9 @@
                     headerUser.innerHTML = `
                         <div class="flex items-center gap-3">
                             <button onclick="app.navigateTo('profile')" class="flex items-center gap-2.5 bg-goalCard hover:bg-goalCardHover border border-goalBorder px-3.5 py-1.5 rounded-full transition group">
-                                <img src="${u.avatar}" class="w-8 h-8 rounded-full object-cover border border-goalred">
+                                <img src="${u.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'}" class="w-8 h-8 rounded-full object-cover border border-goalred">
                                 <span class="text-xs font-bold text-white group-hover:text-goalred transition hidden sm:inline">${u.firstName}</span>
-                                <span class="text-[10px] ${u.isAdmin ? 'text-goalred font-black' : 'text-zinc-400'} bg-goalred/10 px-2 py-0.5 rounded-md ml-1">${u.isAdmin ? 'ADMIN' : u.credits.toLocaleString() + ' F'}</span>
+                                <span class="text-[10px] ${u.isAdmin ? 'text-goalred font-black' : 'text-zinc-400'} bg-goalred/10 px-2 py-0.5 rounded-md ml-1">${u.isAdmin ? 'ADMIN' : 'Membre'}</span>
                             </button>
                         </div>
                     `;
@@ -210,7 +206,7 @@
                                 <h1 class="text-3xl sm:text-4xl font-black text-white tracking-tight">Matchs à venir</h1>
                             </div>
                             <div class="text-xs text-zinc-400 bg-goalCard border border-goalBorder px-3.5 py-2 rounded-xl">
-                                ⚽ Redirection Paiement Direct Wave & OM
+                                ⚽ Paiement officiel WAVE
                             </div>
                         </div>
 
@@ -274,7 +270,9 @@
                                     </div>
                                 ` : (isBooked ? 
                                     `<div class="text-green-400 font-bold text-xs"><i class="fa-solid fa-circle-check"></i> Tu es inscrit à ce match !</div>` :
-                                    `<button onclick="app.openPaymentModal('${m.id}')" class="w-full bg-goalred text-white font-bold py-4 rounded-xl text-sm shadow-xl">${u.isAdmin ? 'Inscrire (Fondateur Gratuit)' : 'Payer & Réserver (' + m.price.toLocaleString() + ' FCFA)'}</button>`
+                                    `<button onclick="app.openWavePaymentModal('${m.id}')" class="w-full bg-[#1EBBEE] hover:bg-sky-400 text-black font-extrabold py-4 rounded-xl text-sm shadow-xl flex items-center justify-center gap-2">
+                                        <i class="fa-solid fa-wallet"></i> Payer ${m.price.toLocaleString()} FCFA avec WAVE
+                                     </button>`
                                 )}
                             </div>
                         </div>
@@ -282,8 +280,8 @@
                 `;
             }
 
-            // --- REDIRECTION PAIEMENT DIRECT APP (WAVE & ORANGE MONEY) ---
-            openPaymentModal(matchId) {
+            // --- REDIRECTION VERS TON VRAI LIEN WAVE ---
+            openWavePaymentModal(matchId) {
                 const m = this.state.matches.find(item => item.id === matchId);
                 const u = this.state.user;
 
@@ -296,24 +294,23 @@
                 const content = document.getElementById('modal-content');
                 modal.classList.remove('hidden');
 
-                // URLs de redirection concrètes vers les portails de paiement marchand Wave / Orange Money
-                // (En production réelle, l'URL pointe vers l'API de paiement ou le deep link de l'app)
+                // Ton vrai lien Wave personnel / marchand officiel
+                const waveLink = "https://pay.wave.com/m/M_sn_cUn3bNetMY4Y/c/sn/";
+
                 content.innerHTML = `
                     <div class="space-y-5 text-center">
-                        <h3 class="text-xl font-black text-white">Redirection Paiement Marchand</h3>
-                        <p class="text-xs text-zinc-400">Match : <strong class="text-white">${m.title}</strong><br>Montant : <strong class="text-goalred text-sm">${m.price.toLocaleString()} FCFA</strong></p>
+                        <div class="w-16 h-16 bg-[#1EBBEE]/10 rounded-full flex items-center justify-center mx-auto text-[#1EBBEE] text-3xl font-black">W</div>
+                        <h3 class="text-xl font-black text-white">Paiement Wave Officiel</h3>
+                        <p class="text-xs text-zinc-400">Montant à régler : <strong class="text-white text-sm">${m.price.toLocaleString()} FCFA</strong> pour <strong class="text-white">${m.title}</strong>.</p>
                         
                         <div class="space-y-3 pt-2">
-                            <a href="https://pay.wave.com/m/goalup_sn?amount=${m.price}&redirect_url=${encodeURIComponent(window.location.href + '?payment=success&matchId=' + m.id)}" 
-                               class="w-full bg-[#1EBBEE] hover:bg-sky-400 text-black font-extrabold py-3.5 rounded-2xl flex items-center justify-center gap-3 transition shadow-lg text-sm block">
-                                <i class="fa-solid fa-mobile-screen-button text-base"></i> Ouvrir l'application WAVE
+                            <a href="${waveLink}" target="_blank" class="w-full bg-[#1EBBEE] hover:bg-sky-400 text-black font-extrabold py-4 rounded-2xl flex items-center justify-center gap-2 transition shadow-lg text-xs block">
+                                <i class="fa-solid fa-external-link-alt text-sm"></i> Ouvrir Wave & Payer directement
                             </a>
-                            <a href="https://fps.orange.sn/pay?amount=${m.price}&redirect_url=${encodeURIComponent(window.location.href + '?payment=success&matchId=' + m.id)}" 
-                               class="w-full bg-[#FF6600] hover:bg-orange-600 text-white font-extrabold py-3.5 rounded-2xl flex items-center justify-center gap-3 transition shadow-lg text-sm block">
-                                <i class="fa-solid fa-wallet text-base"></i> Payer avec ORANGE MONEY
-                            </a>
+                            <button onclick="app.confirmBooking('${m.id}')" class="w-full bg-goalred hover:bg-red-700 text-white font-bold py-3.5 rounded-2xl text-xs transition shadow-lg">
+                                J'ai effectué le paiement, valider ma place
+                            </button>
                         </div>
-                        <p class="text-[10px] text-zinc-500 pt-2">En cliquant, vous serez redirigé vers l'application de paiement mobile sécurisée, puis ramené automatiquement ici après confirmation.</p>
                     </div>
                 `;
             }
@@ -326,18 +323,15 @@
                     m.registeredUsers.push(u.id);
                     m.currentPlayers += 1;
                     if(!m.welcomeMessages) m.welcomeMessages = {};
-                    m.welcomeMessages[u.id] = `👋 Salut ${u.firstName} ! Paiement mobile validé. Votre place pour "${m.title}" est confirmée.`;
+                    m.welcomeMessages[u.id] = `👋 Salut ${u.firstName} ! Paiement Wave vérifié. Ta place pour "${m.title}" est confirmée.`;
                     this.saveToStorage();
-                    alert("Paiement validé avec succès ! Votre place est confirmée.");
+                    this.closeModal();
+                    alert("Réservation confirmée avec succès !");
                     this.navigateTo('match-detail', { matchId });
                 }
             }
 
-            renderAuthModal(mode) {
-                // ... inchangé ...
-            }
-
-            // --- AUTHENTIFICATION & GESTION ---
+            // --- AUTHENTIFICATION SÉCURISÉE ---
             openAuthModal(mode) {
                 const modal = document.getElementById('system-modal');
                 const content = document.getElementById('modal-content');
@@ -363,7 +357,7 @@
                             <input type="email" id="reg-email" placeholder="Email" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white">
                             <input type="tel" id="reg-phone" placeholder="Téléphone (+221 77...)" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white">
                             <input type="password" id="reg-pwd" placeholder="Créer un mot de passe" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white">
-                            <button type="submit" class="w-full bg-goalred text-white font-bold py-3.5 rounded-xl text-sm shadow-lg mt-2">S'inscrire</button>
+                            <button type="submit" class="w-full bg-goalred text-white font-bold py-3.5 rounded-xl text-sm shadow-lg mt-2">Créer mon compte</button>
                         </form>
                     `;
                 }
@@ -396,13 +390,19 @@
                 const pwd = document.getElementById('reg-pwd').value;
 
                 if (this.state.usersDatabase[email]) {
-                    alert("Cet e-mail est déjà utilisé.");
+                    alert("Cet e-mail est déjà associé à un compte. Veuillez vous connecter.");
                     return;
                 }
 
                 const newUser = {
-                    id: "usr_" + Date.now(), firstName: fn, lastName: ln, email: email, phone: phone, password: pwd, credits: 5000,
-                    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80", isAdmin: false
+                    id: "usr_" + Date.now(),
+                    firstName: fn,
+                    lastName: ln,
+                    email: email,
+                    phone: phone,
+                    password: pwd,
+                    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
+                    isAdmin: false
                 };
 
                 this.state.usersDatabase[email] = newUser;
@@ -413,6 +413,72 @@
                 this.navigateTo('matches');
             }
 
+            // --- PROFIL UTILISATEUR & MODIFICATION ---
+            renderProfileView() {
+                const u = this.state.user;
+                return `
+                    <div class="space-y-6 max-w-xl mx-auto bg-goalCard border border-goalBorder p-8 rounded-3xl shadow-2xl">
+                        <div class="flex justify-between items-center">
+                            <h1 class="text-2xl font-black text-white">Mon Profil</h1>
+                            <button onclick="app.logout()" class="text-xs font-bold text-red-400 bg-red-500/10 px-4 py-2 rounded-xl">Se déconnecter</button>
+                        </div>
+
+                        <div class="flex items-center gap-5 pb-6 border-b border-goalBorder">
+                            <img src="${u.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'}" class="w-20 h-20 rounded-full object-cover border-2 border-goalred">
+                            <div class="space-y-2">
+                                <h3 class="text-lg font-bold text-white">${u.firstName} ${u.lastName}</h3>
+                                <button onclick="app.openEditProfileModal()" class="bg-goalred hover:bg-red-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition">Modifier mes infos & photo</button>
+                            </div>
+                        </div>
+
+                        <div class="space-y-3 text-xs">
+                            <p class="text-zinc-300"><strong>Email :</strong> ${u.email}</p>
+                            <p class="text-zinc-300"><strong>Téléphone :</strong> ${u.phone}</p>
+                            <p class="text-zinc-300"><strong>Statut :</strong> ${u.isAdmin ? 'Fondateur / Administrateur' : 'Membre'}</p>
+                        </div>
+                    </div>
+                `;
+            }
+
+            openEditProfileModal() {
+                const u = this.state.user;
+                const modal = document.getElementById('system-modal');
+                const content = document.getElementById('modal-content');
+                modal.classList.remove('hidden');
+
+                content.innerHTML = `
+                    <h3 class="text-xl font-black text-white mb-4">Modifier mon profil</h3>
+                    <form onsubmit="app.saveProfileEdits(event)" class="space-y-4 text-xs">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div><label class="block text-zinc-400 mb-1">Prénom</label><input type="text" id="up-fn" value="${u.firstName}" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
+                            <div><label class="block text-zinc-400 mb-1">Nom</label><input type="text" id="up-ln" value="${u.lastName}" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
+                        </div>
+                        <div><label class="block text-zinc-400 mb-1">Téléphone</label><input type="tel" id="up-phone" value="${u.phone}" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
+                        <div><label class="block text-zinc-400 mb-1">Lien de la photo de profil (URL)</label><input type="url" id="up-avatar" value="${u.avatar}" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
+                        <button type="submit" class="w-full bg-goalred text-white font-bold py-3.5 rounded-xl shadow-lg mt-2">Enregistrer les modifications</button>
+                    </form>
+                `;
+            }
+
+            saveProfileEdits(e) {
+                e.preventDefault();
+                const u = this.state.user;
+                u.firstName = document.getElementById('up-fn').value.trim();
+                u.lastName = document.getElementById('up-ln').value.trim();
+                u.phone = document.getElementById('up-phone').value.trim();
+                u.avatar = document.getElementById('up-avatar').value.trim();
+
+                if(this.state.usersDatabase[u.email]) {
+                    this.state.usersDatabase[u.email] = { ...u, password: this.state.usersDatabase[u.email].password };
+                }
+
+                this.saveToStorage();
+                this.closeModal();
+                alert("Profil mis à jour avec succès !");
+                this.navigateTo('profile');
+            }
+
+            // --- CHAT & MESSAGES ---
             renderGameChatView(matchId) {
                 const m = this.state.matches.find(item => item.id === matchId);
                 return `
@@ -461,50 +527,6 @@
                 `;
             }
 
-            renderProfileView() {
-                const u = this.state.user;
-                return `
-                    <div class="space-y-6 max-w-xl mx-auto bg-goalCard border border-goalBorder p-8 rounded-3xl shadow-2xl">
-                        <div class="flex justify-between items-center">
-                            <h1 class="text-2xl font-black text-white">Mon Profil</h1>
-                            <button onclick="app.logout()" class="text-xs font-bold text-red-400 bg-red-500/10 px-4 py-2 rounded-xl">Se déconnecter</button>
-                        </div>
-                        <div class="flex items-center gap-5 pb-6 border-b border-goalBorder">
-                            <img src="${u.avatar}" class="w-20 h-20 rounded-full object-cover border-2 border-goalred">
-                            <div class="space-y-2">
-                                <h3 class="text-lg font-bold text-white">${u.firstName} ${u.lastName}</h3>
-                                <button onclick="app.openChangeAvatarModal()" class="bg-zinc-800 text-white font-bold text-xs px-3.5 py-2 rounded-xl">Changer la photo</button>
-                            </div>
-                        </div>
-                        <div class="space-y-3 text-xs">
-                            <p class="text-zinc-300"><strong>Email :</strong> ${u.email}</p>
-                            <p class="text-zinc-300"><strong>Téléphone :</strong> ${u.phone}</p>
-                        </div>
-                    </div>
-                `;
-            }
-
-            openChangeAvatarModal() {
-                const modal = document.getElementById('system-modal');
-                const content = document.getElementById('modal-content');
-                modal.classList.remove('hidden');
-                content.innerHTML = `
-                    <h3 class="text-xl font-black text-white mb-4">Changer la photo de profil</h3>
-                    <form onsubmit="app.saveAvatar(event)" class="space-y-4 text-xs">
-                        <input type="url" id="new-avatar-url" required value="${this.state.user.avatar}" class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white">
-                        <button type="submit" class="w-full bg-goalred text-white font-bold py-3.5 rounded-xl shadow-lg">Enregistrer</button>
-                    </form>
-                `;
-            }
-
-            saveAvatar(e) {
-                e.preventDefault();
-                this.state.user.avatar = document.getElementById('new-avatar-url').value;
-                this.saveToStorage();
-                this.closeModal();
-                this.navigateTo('profile');
-            }
-
             logout() {
                 this.state.user = { id: null, isAuthenticated: false, isAdmin: false };
                 this.saveToStorage();
@@ -513,6 +535,7 @@
 
             closeModal() { document.getElementById('system-modal').classList.add('hidden'); }
 
+            // --- ADMIN ---
             renderAdminDashboardView() {
                 return `
                     <div class="space-y-8">
