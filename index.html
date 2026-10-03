@@ -31,14 +31,12 @@
 </head>
 <body class="min-h-screen flex flex-col selection:bg-goalred selection:text-white">
 
-    <!-- HEADER SÉCURISÉ -->
     <header class="sticky top-0 z-50 bg-[#060608]/95 backdrop-blur-md border-b border-goalBorder">
         <div class="max-w-6xl mx-auto px-4 h-20 flex items-center justify-between">
             <div class="flex items-center space-x-3 cursor-pointer group" onclick="app.navigateTo('matches')">
                 <span class="text-xl font-black tracking-wider text-white">GOAL<span class="text-goalred">UP</span></span>
                 <span class="text-[10px] uppercase font-bold tracking-widest text-zinc-500 border-l border-goalBorder pl-3 hidden sm:inline-block">Dakar</span>
             </div>
-            
             <nav id="header-nav" class="hidden md:flex items-center space-x-8 text-sm font-semibold"></nav>
             <div id="header-user-area"></div>
         </div>
@@ -48,7 +46,6 @@
 
     <main id="app-container" class="flex-grow pb-32 md:pb-16 pt-6 px-4 max-w-6xl mx-auto w-full"></main>
 
-    <!-- MODAL -->
     <div id="system-modal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm hidden flex items-center justify-center p-4">
         <div class="bg-goalCard border border-goalBorder rounded-3xl w-full max-w-md p-6 relative shadow-2xl max-h-[90vh] overflow-y-auto">
             <button onclick="app.closeModal()" class="absolute top-5 right-5 text-zinc-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
@@ -67,19 +64,40 @@
     <script>
         class GoalUpApp {
             constructor() {
-                this.state = {
-                    currentView: 'matches',
-                    params: {},
-                    user: JSON.parse(localStorage.getItem('goalup_current_user')) || {
-                        id: null, firstName: "", lastName: "", email: "", phone: "", credits: 0, avatar: "", isAdmin: false, isAuthenticated: false
-                    },
-                    matches: JSON.parse(localStorage.getItem('goalup_matches')) || [],
-                    usersDatabase: JSON.parse(localStorage.getItem('goalup_users_db')) || {
-                        "omar.goalup@gmail.com": {
-                            id: "usr_admin", firstName: "Omar", lastName: "GoalUp", email: "omar.goalup@gmail.com", phone: "+221 77 823 44 55", password: "47749669", credits: 50000, avatar: "", isAdmin: true
+                try {
+                    // Vérification et nettoyage automatique si le cache mobile est corrompu
+                    const savedUser = localStorage.getItem('goalup_current_user');
+                    const savedMatches = localStorage.getItem('goalup_matches');
+                    const savedDb = localStorage.getItem('goalup_users_db');
+
+                    this.state = {
+                        currentView: 'matches',
+                        params: {},
+                        user: savedUser ? JSON.parse(savedUser) : {
+                            id: null, firstName: "", lastName: "", email: "", phone: "", credits: 0, avatar: "", isAdmin: false, isAuthenticated: false
+                        },
+                        matches: savedMatches ? JSON.parse(savedMatches) : [],
+                        usersDatabase: savedDb ? JSON.parse(savedDb) : {
+                            "omar.goalup@gmail.com": {
+                                id: "usr_admin", firstName: "Omar", lastName: "GoalUp", email: "omar.goalup@gmail.com", phone: "+221 77 823 44 55", password: "47749669", credits: 50000, avatar: "", isAdmin: true
+                            }
                         }
-                    }
-                };
+                    };
+                } catch(err) {
+                    console.error("Erreur critique de chargement du stockage :", err);
+                    localStorage.clear();
+                    this.state = {
+                        currentView: 'matches',
+                        params: {},
+                        user: { id: null, firstName: "", lastName: "", email: "", phone: "", credits: 0, avatar: "", isAdmin: false, isAuthenticated: false },
+                        matches: [],
+                        usersDatabase: {
+                            "omar.goalup@gmail.com": {
+                                id: "usr_admin", firstName: "Omar", lastName: "GoalUp", email: "omar.goalup@gmail.com", phone: "+221 77 823 44 55", password: "47749669", credits: 50000, avatar: "", isAdmin: true
+                            }
+                        }
+                    };
+                }
 
                 const urlParams = new URLSearchParams(window.location.search);
                 if(urlParams.get('payment') === 'success' && urlParams.get('matchId')) {
@@ -181,7 +199,7 @@
             }
 
             renderMatchesView() {
-                if(this.state.matches.length === 0) {
+                if(!this.state.matches || this.state.matches.length === 0) {
                     return `
                         <div class="space-y-8 py-12">
                             <div>
@@ -212,7 +230,7 @@
                         <div class="grid grid-cols-1 gap-5">
                             ${this.state.matches.map(m => {
                                 if(m.status === 'Annulé') return '';
-                                const count = m.registeredUsers.length;
+                                const count = m.registeredUsers ? m.registeredUsers.length : 0;
                                 const percent = Math.min(100, Math.round((count / m.maxPlayers) * 100));
                                 return `
                                     <div onclick="app.navigateTo('match-detail', { matchId: '${m.id}' })" class="bg-goalCard border border-goalBorder hover:border-zinc-700 rounded-3xl p-5 sm:p-6 cursor-pointer transition group shadow-lg space-y-4">
@@ -220,7 +238,7 @@
                                             <div class="flex items-start gap-4">
                                                 <div class="bg-[#18181d] border border-goalBorder px-3.5 py-3 rounded-2xl text-center shrink-0">
                                                     <span class="text-[10px] text-zinc-400 block uppercase font-bold">Date</span>
-                                                    <span class="text-xs sm:text-sm font-black text-white">${m.dateRaw.split('-').reverse().join('/')}</span>
+                                                    <span class="text-xs sm:text-sm font-black text-white">${m.dateRaw ? m.dateRaw.split('-').reverse().join('/') : ''}</span>
                                                 </div>
                                                 <div class="space-y-1">
                                                     <div class="flex items-center gap-2">
@@ -261,13 +279,13 @@
                 if(!m) return `<div class="p-12 text-center text-zinc-400">Match introuvable.</div>`;
                 const u = this.state.user;
                 const isAuth = u.isAuthenticated;
-                const isBooked = isAuth && m.registeredUsers.includes(u.id);
-                const count = m.registeredUsers.length;
+                const isBooked = isAuth && m.registeredUsers && m.registeredUsers.includes(u.id);
+                const count = m.registeredUsers ? m.registeredUsers.length : 0;
                 const percent = Math.min(100, Math.round((count / m.maxPlayers) * 100));
 
-                const registeredProfiles = m.registeredUsers.map(uid => {
+                const registeredProfiles = m.registeredUsers ? m.registeredUsers.map(uid => {
                     return Object.values(this.state.usersDatabase).find(usr => usr.id === uid) || { firstName: "Joueur", lastName: "GOALUP", avatar: "" };
-                });
+                }) : [];
 
                 return `
                     <div class="space-y-6 max-w-3xl mx-auto">
@@ -298,7 +316,7 @@
                                     ${registeredProfiles.length ? registeredProfiles.map(p => `
                                         <div class="flex items-center gap-3 bg-[#18181d] border border-goalBorder p-3 rounded-2xl">
                                             ${this.renderAvatar(p, "w-8 h-8", "text-xs")}
-                                            <span class="text-xs font-bold text-white">${p.firstName}${p.lastName}</span>
+                                            <span class="text-xs font-bold text-white">${p.firstName} ${p.lastName}</span>
                                         </div>
                                     `).join('') : `<p class="text-xs text-zinc-500 italic py-2">Aucun joueur inscrit pour le moment. Sois le premier !</p>`}
                                 </div>
@@ -348,7 +366,6 @@
 
                 if(m && !m.registeredUsers.includes(u.id)) {
                     m.registeredUsers.push(u.id);
-                    m.currentPlayers = m.registeredUsers.length;
                     if(!m.welcomeMessages) m.welcomeMessages = {};
                     m.welcomeMessages[u.id] = `👋 Salut ${u.firstName} ! Paiement Wave validé. Ta place pour "${m.title}" est confirmée.`;
                     this.saveToStorage();
@@ -386,7 +403,6 @@
                 const u = this.state.user;
 
                 m.registeredUsers = m.registeredUsers.filter(uid => uid !== u.id);
-                m.currentPlayers = m.registeredUsers.length;
 
                 let msg = "";
                 if (hoursBefore > 24) {
@@ -432,7 +448,10 @@
                             </div>
                             <input type="email" id="reg-email" placeholder="Email" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white">
                             <input type="tel" id="reg-phone" placeholder="Téléphone (+221 77...)" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white">
-                            <input type="text" id="reg-avatar" placeholder="URL de votre photo de profil (facultatif)" class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white">
+                            <div>
+                                <label class="block text-zinc-400 mb-1">Photo de profil (depuis ton téléphone)</label>
+                                <input type="file" id="reg-avatar-file" accept="image/*" class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-2 text-white text-xs file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-goalred file:text-white hover:file:bg-red-700">
+                            </div>
                             <input type="password" id="reg-pwd" placeholder="Créer un mot de passe" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white">
                             <button type="submit" class="w-full bg-goalred text-white font-bold py-3.5 rounded-xl text-sm shadow-lg mt-2">Créer mon compte</button>
                         </form>
@@ -464,32 +483,44 @@
                 const ln = document.getElementById('reg-ln').value.trim();
                 const email = document.getElementById('reg-email').value.trim().toLowerCase();
                 const phone = document.getElementById('reg-phone').value.trim();
-                const avatar = document.getElementById('reg-avatar').value.trim();
                 const pwd = document.getElementById('reg-pwd').value;
+                const fileInput = document.getElementById('reg-avatar-file');
 
                 if (this.state.usersDatabase[email]) {
                     alert("Cet e-mail est déjà associé à un compte. Veuillez vous connecter.");
                     return;
                 }
 
-                const newUser = {
-                    id: "usr_" + Date.now(),
-                    firstName: fn,
-                    lastName: ln,
-                    email: email,
-                    phone: phone,
-                    password: pwd,
-                    credits: 0,
-                    avatar: avatar,
-                    isAdmin: false
+                const processUser = (avatarBase64 = "") => {
+                    const newUser = {
+                        id: "usr_" + Date.now(),
+                        firstName: fn,
+                        lastName: ln,
+                        email: email,
+                        phone: phone,
+                        password: pwd,
+                        credits: 0,
+                        avatar: avatarBase64,
+                        isAdmin: false
+                    };
+
+                    this.state.usersDatabase[email] = newUser;
+                    this.state.user = { ...newUser, isAuthenticated: true };
+                    this.saveToStorage();
+                    this.closeModal();
+                    alert("Compte créé avec succès !");
+                    this.navigateTo('matches');
                 };
 
-                this.state.usersDatabase[email] = newUser;
-                this.state.user = { ...newUser, isAuthenticated: true };
-                this.saveToStorage();
-                this.closeModal();
-                alert("Compte créé avec succès !");
-                this.navigateTo('matches');
+                if (fileInput.files && fileInput.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = function(uploadEvent) {
+                        processUser(uploadEvent.target.result);
+                    };
+                    reader.readAsDataURL(fileInput.files[0]);
+                } else {
+                    processUser("");
+                }
             }
 
             renderProfileView() {
@@ -556,7 +587,10 @@
                             <div><label class="block text-zinc-400 mb-1">Nom</label><input type="text" id="up-ln" value="${u.lastName}" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
                         </div>
                         <div><label class="block text-zinc-400 mb-1">Téléphone</label><input type="tel" id="up-phone" value="${u.phone}" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
-                        <div><label class="block text-zinc-400 mb-1">URL de la photo de profil</label><input type="text" id="up-avatar" value="${u.avatar || ''}" placeholder="https://..." class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
+                        <div>
+                            <label class="block text-zinc-400 mb-1">Changer la photo de profil</label>
+                            <input type="file" id="up-avatar-file" accept="image/*" class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-2 text-white text-xs file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-goalred file:text-white hover:file:bg-red-700">
+                        </div>
                         <button type="submit" class="w-full bg-goalred text-white font-bold py-3.5 rounded-xl shadow-lg mt-2">Enregistrer</button>
                     </form>
                 `;
@@ -568,16 +602,28 @@
                 u.firstName = document.getElementById('up-fn').value.trim();
                 u.lastName = document.getElementById('up-ln').value.trim();
                 u.phone = document.getElementById('up-phone').value.trim();
-                u.avatar = document.getElementById('up-avatar').value.trim();
+                const fileInput = document.getElementById('up-avatar-file');
 
-                if(this.state.usersDatabase[u.email]) {
-                    this.state.usersDatabase[u.email] = { ...this.state.usersDatabase[u.email], ...u };
+                const applyEdits = (newAvatar = u.avatar) => {
+                    u.avatar = newAvatar;
+                    if(this.state.usersDatabase[u.email]) {
+                        this.state.usersDatabase[u.email] = { ...this.state.usersDatabase[u.email], ...u };
+                    }
+                    this.saveToStorage();
+                    this.closeModal();
+                    alert("Profil mis à jour !");
+                    this.navigateTo('profile');
+                };
+
+                if (fileInput.files && fileInput.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = function(uploadEvent) {
+                        applyEdits(uploadEvent.target.result);
+                    };
+                    reader.readAsDataURL(fileInput.files[0]);
+                } else {
+                    applyEdits(u.avatar);
                 }
-
-                this.saveToStorage();
-                this.closeModal();
-                alert("Profil mis à jour !");
-                this.navigateTo('profile');
             }
 
             renderGameChatView(matchId) {
@@ -588,7 +634,7 @@
                         <div class="bg-goalCard border border-goalBorder rounded-3xl p-6 shadow-2xl space-y-4">
                             <h2 class="font-black text-white text-base">Chat Live - ${m.title}</h2>
                             <div class="bg-[#18181d] border border-goalBorder rounded-2xl p-4 space-y-3 h-80 overflow-y-auto">
-                                ${m.messages.length ? m.messages.map(msg => `<div class="text-xs"><strong class="text-white">${msg.userName}:</strong> <span class="text-zinc-300">${msg.text}</span></div>`).join('') : '<p class="text-xs text-zinc-500 text-center py-16">Aucun message.</p>'}
+                                ${m.messages && m.messages.length ? m.messages.map(msg => `<div class="text-xs"><strong class="text-white">${msg.userName}:</strong> <span class="text-zinc-300">${msg.text}</span></div>`).join('') : '<p class="text-xs text-zinc-500 text-center py-16">Aucun message.</p>'}
                             </div>
                             <form onsubmit="app.sendMessage(event, '${m.id}')" class="flex gap-2">
                                 <input type="text" id="chat-txt" placeholder="Écrire un message..." required class="flex-grow bg-[#18181d] border border-goalBorder rounded-xl p-3 text-xs text-white">
@@ -603,15 +649,15 @@
                 e.preventDefault();
                 const txt = document.getElementById('chat-txt').value;
                 const m = this.state.matches.find(item => item.id === matchId);
+                if(!m.messages) m.messages = [];
                 m.messages.push({ userName: this.state.user.firstName, text: txt, time: "Maintenant" });
-                document.getElementById('chat-txt').value = "";
                 this.saveToStorage();
                 this.navigateTo('game-chat', { matchId });
             }
 
             renderMessagesView() {
                 const u = this.state.user;
-                const userMatches = this.state.matches.filter(m => m.registeredUsers.includes(u.id));
+                const userMatches = this.state.matches.filter(m => m.registeredUsers && m.registeredUsers.includes(u.id));
                 return `
                     <div class="space-y-6">
                         <h1 class="text-3xl font-black text-white">Mes Messages & Notifications</h1>
@@ -619,7 +665,7 @@
                             ${userMatches.length ? userMatches.map(m => `
                                 <div class="bg-goalCard border border-goalBorder rounded-3xl p-6 shadow-xl space-y-3">
                                     <h3 class="font-bold text-white text-sm">${m.title}</h3>
-                                    <p class="text-xs text-zinc-300">${m.welcomeMessages[u.id] || "Rappel de match."}</p>
+                                    <p class="text-xs text-zinc-300">${m.welcomeMessages && m.welcomeMessages[u.id] ? m.welcomeMessages[u.id] : "Rappel de match."}</p>
                                     <button onclick="app.navigateTo('game-chat', { matchId: '${m.id}' })" class="bg-goalred text-white font-bold px-4 py-2 rounded-xl text-xs">Ouvrir le Chat</button>
                                 </div>
                             `).join('') : `<p class="text-xs text-zinc-500 text-center py-12">Aucun message pour le moment.</p>`}
@@ -819,7 +865,10 @@
                                 <div><label class="block text-zinc-400 mb-1">Prénom</label><input type="text" id="adm-fn" value="${p.firstName}" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
                                 <div><label class="block text-zinc-400 mb-1">Nom</label><input type="text" id="adm-ln" value="${p.lastName}" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
                                 <div><label class="block text-zinc-400 mb-1">Crédits GOALUP (FCFA)</label><input type="number" id="adm-credits" value="${p.credits}" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
-                                <div><label class="block text-zinc-400 mb-1">URL de la photo de profil</label><input type="text" id="adm-avatar" value="${p.avatar || ''}" placeholder="https://..." class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
+                                <div>
+                                    <label class="block text-zinc-400 mb-1">Modifier la photo</label>
+                                    <input type="file" id="adm-avatar-file" accept="image/*" class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-2 text-white text-xs file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-goalred file:text-white hover:file:bg-red-700">
+                                </div>
                                 <button type="submit" class="w-full bg-goalred text-white font-bold py-3.5 rounded-xl shadow-lg mt-2">Enregistrer les modifications</button>
                             </form>
                         </div>
@@ -830,14 +879,26 @@
             savePlayerAdminEdits(e, email) {
                 e.preventDefault();
                 const p = this.state.usersDatabase[email];
-                if(p) {
+                const fileInput = document.getElementById('adm-avatar-file');
+
+                const applyAdminEdits = (newAvatar = p.avatar) => {
                     p.firstName = document.getElementById('adm-fn').value.trim();
                     p.lastName = document.getElementById('adm-ln').value.trim();
                     p.credits = parseInt(document.getElementById('adm-credits').value);
-                    p.avatar = document.getElementById('adm-avatar').value.trim();
+                    p.avatar = newAvatar;
                     this.saveToStorage();
                     alert("Profil du joueur mis à jour avec succès !");
                     this.navigateTo('admin-players');
+                };
+
+                if (fileInput.files && fileInput.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = function(uploadEvent) {
+                        applyAdminEdits(uploadEvent.target.result);
+                    };
+                    reader.readAsDataURL(fileInput.files[0]);
+                } else {
+                    applyAdminEdits(p.avatar);
                 }
             }
 
