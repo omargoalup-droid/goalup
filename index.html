@@ -71,18 +71,10 @@
                 this.state = {
                     currentView: 'matches',
                     params: {},
-                    user: {
-                        id: null,
-                        firstName: "",
-                        lastName: "",
-                        email: "",
-                        phone: "+221 77 000 00 00",
-                        credits: 10000,
-                        avatar: "",
-                        isAdmin: false,
-                        isAuthenticated: false
+                    user: JSON.parse(localStorage.getItem('goalup_current_user')) || {
+                        id: null, firstName: "", lastName: "", email: "", phone: "", credits: 0, avatar: "", isAdmin: false, isAuthenticated: false
                     },
-                    matches: [
+                    matches: JSON.parse(localStorage.getItem('goalup_matches')) || [
                         {
                             id: "m_01",
                             title: "GOALUP NIGHT - ALMADIES",
@@ -96,7 +88,7 @@
                             level: "Intermédiaire",
                             maxPlayers: 16,
                             minPlayers: 10,
-                            currentPlayers: 1,
+                            currentPlayers: 0,
                             price: 3000,
                             status: "Ouvert",
                             description: "Match intense sur gazon synthétique de haute qualité. Chasubles et ballons fournis.",
@@ -106,11 +98,34 @@
                             welcomeMessages: {}
                         }
                     ],
-                    playersDirectory: {
-                        "usr_02": { id: "usr_02", firstName: "Mamadou", lastName: "Diallo", email: "mamadou@goalup.sn", phone: "+221 77 111 22 33", credits: 5000, position: "Attaquant", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80" }
+                    usersDatabase: JSON.parse(localStorage.getItem('goalup_users_db')) || {
+                        "omar.goalup@gmail.com": {
+                            id: "usr_admin", firstName: "Omar", lastName: "GoalUp", email: "omar.goalup@gmail.com", phone: "+221 77 823 44 55", password: "47749669", credits: 999999, avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80", isAdmin: true
+                        }
                     }
                 };
+
+                // Vérifier si l'utilisateur revient d'un paiement réussi via l'URL (ex: ?payment=success&matchId=m_01)
+                const urlParams = new URLSearchParams(window.location.search);
+                if(urlParams.get('payment') === 'success' && urlParams.get('matchId')) {
+                    const matchId = urlParams.get('matchId');
+                    // Nettoyer l'URL
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                    // Valider la réservation en différé si l'utilisateur est connecté
+                    setTimeout(() => {
+                        if(this.state.user.isAuthenticated) {
+                            this.confirmBooking(matchId);
+                        }
+                    }, 500);
+                }
+
                 this.navigateTo('matches');
+            }
+
+            saveToStorage() {
+                localStorage.setItem('goalup_current_user', JSON.stringify(this.state.user));
+                localStorage.setItem('goalup_matches', JSON.stringify(this.state.matches));
+                localStorage.setItem('goalup_users_db', JSON.stringify(this.state.usersDatabase));
             }
 
             navigateTo(view, params = {}) {
@@ -195,7 +210,7 @@
                                 <h1 class="text-3xl sm:text-4xl font-black text-white tracking-tight">Matchs à venir</h1>
                             </div>
                             <div class="text-xs text-zinc-400 bg-goalCard border border-goalBorder px-3.5 py-2 rounded-xl">
-                                ⚽ Paiement mobile Wave & Orange Money
+                                ⚽ Redirection Paiement Direct Wave & OM
                             </div>
                         </div>
 
@@ -252,20 +267,22 @@
                                 <button onclick="app.navigateTo('game-chat', { matchId: '${m.id}' })" class="bg-zinc-800 text-white font-bold px-4 py-2.5 rounded-xl text-xs"><i class="fa-solid fa-comments text-goalred"></i> Ouvrir le Chat Live</button>
                             </div>
                             <div class="pt-4 border-t border-goalBorder">
-                                ${!isAuth ? 
-                                    `<button onclick="app.openAuthModal('login')" class="w-full bg-goalred text-white font-bold py-4 rounded-xl text-sm shadow-xl">Connecte-toi pour réserver</button>` :
-                                    (isBooked ? 
-                                        `<div class="text-green-400 font-bold text-xs"><i class="fa-solid fa-circle-check"></i> Tu es inscrit à ce match !</div>` :
-                                        `<button onclick="app.openPaymentModal('${m.id}')" class="w-full bg-goalred text-white font-bold py-4 rounded-xl text-sm shadow-xl">${u.isAdmin ? 'Inscrire (Fondateur Gratuit)' : 'Payer & Réserver (' + m.price.toLocaleString() + ' FCFA)'}</button>`
-                                    )
-                                }
+                                ${!isAuth ? `
+                                    <div class="flex flex-col sm:flex-row gap-3">
+                                        <button onclick="app.openAuthModal('login')" class="flex-1 bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-3.5 rounded-xl text-xs transition">Se connecter</button>
+                                        <button onclick="app.openAuthModal('register')" class="flex-1 bg-goalred hover:bg-red-700 text-white font-bold py-3.5 rounded-xl text-xs transition shadow-lg">S'inscrire</button>
+                                    </div>
+                                ` : (isBooked ? 
+                                    `<div class="text-green-400 font-bold text-xs"><i class="fa-solid fa-circle-check"></i> Tu es inscrit à ce match !</div>` :
+                                    `<button onclick="app.openPaymentModal('${m.id}')" class="w-full bg-goalred text-white font-bold py-4 rounded-xl text-sm shadow-xl">${u.isAdmin ? 'Inscrire (Fondateur Gratuit)' : 'Payer & Réserver (' + m.price.toLocaleString() + ' FCFA)'}</button>`
+                                )}
                             </div>
                         </div>
                     </div>
                 `;
             }
 
-            // --- SYSTÈME DE PAIEMENT SÉNÉGAL (WAVE & ORANGE MONEY) ---
+            // --- REDIRECTION PAIEMENT DIRECT APP (WAVE & ORANGE MONEY) ---
             openPaymentModal(matchId) {
                 const m = this.state.matches.find(item => item.id === matchId);
                 const u = this.state.user;
@@ -279,39 +296,26 @@
                 const content = document.getElementById('modal-content');
                 modal.classList.remove('hidden');
 
+                // URLs de redirection concrètes vers les portails de paiement marchand Wave / Orange Money
+                // (En production réelle, l'URL pointe vers l'API de paiement ou le deep link de l'app)
                 content.innerHTML = `
                     <div class="space-y-5 text-center">
-                        <h3 class="text-xl font-black text-white">Validation du Paiement</h3>
-                        <p class="text-xs text-zinc-400">Match : <strong class="text-white">${m.title}</strong><br>Montant à régler : <strong class="text-goalred text-sm">${m.price.toLocaleString()} FCFA</strong></p>
+                        <h3 class="text-xl font-black text-white">Redirection Paiement Marchand</h3>
+                        <p class="text-xs text-zinc-400">Match : <strong class="text-white">${m.title}</strong><br>Montant : <strong class="text-goalred text-sm">${m.price.toLocaleString()} FCFA</strong></p>
                         
                         <div class="space-y-3 pt-2">
-                            <button onclick="app.processMobilePayment('${m.id}', 'Wave')" class="w-full bg-[#1EBBEE] hover:bg-sky-400 text-black font-extrabold py-3.5 rounded-2xl flex items-center justify-center gap-3 transition shadow-lg text-sm">
-                                <i class="fa-solid fa-mobile-screen-button text-base"></i> Payer avec WAVE
-                            </button>
-                            <button onclick="app.processMobilePayment('${m.id}', 'Orange Money')" class="w-full bg-[#FF6600] hover:bg-orange-600 text-white font-extrabold py-3.5 rounded-2xl flex items-center justify-center gap-3 transition shadow-lg text-sm">
+                            <a href="https://pay.wave.com/m/goalup_sn?amount=${m.price}&redirect_url=${encodeURIComponent(window.location.href + '?payment=success&matchId=' + m.id)}" 
+                               class="w-full bg-[#1EBBEE] hover:bg-sky-400 text-black font-extrabold py-3.5 rounded-2xl flex items-center justify-center gap-3 transition shadow-lg text-sm block">
+                                <i class="fa-solid fa-mobile-screen-button text-base"></i> Ouvrir l'application WAVE
+                            </a>
+                            <a href="https://fps.orange.sn/pay?amount=${m.price}&redirect_url=${encodeURIComponent(window.location.href + '?payment=success&matchId=' + m.id)}" 
+                               class="w-full bg-[#FF6600] hover:bg-orange-600 text-white font-extrabold py-3.5 rounded-2xl flex items-center justify-center gap-3 transition shadow-lg text-sm block">
                                 <i class="fa-solid fa-wallet text-base"></i> Payer avec ORANGE MONEY
-                            </button>
+                            </a>
                         </div>
+                        <p class="text-[10px] text-zinc-500 pt-2">En cliquant, vous serez redirigé vers l'application de paiement mobile sécurisée, puis ramené automatiquement ici après confirmation.</p>
                     </div>
                 `;
-            }
-
-            processMobilePayment(matchId, provider) {
-                const m = this.state.matches.find(item => item.id === matchId);
-                const modal = document.getElementById('modal-content');
-
-                modal.innerHTML = `
-                    <div class="space-y-6 text-center py-6">
-                        <div class="w-12 h-12 border-4 border-goalred border-t-transparent rounded-full animate-spin mx-auto"></div>
-                        <h3 class="text-lg font-bold text-white">Connexion à ${provider}...</h3>
-                        <p class="text-xs text-zinc-400">Veuillez valider la demande de paiement sur votre téléphone au <strong>${this.state.user.phone}</strong></p>
-                    </div>
-                `;
-
-                setTimeout(() => {
-                    this.closeModal();
-                    this.confirmBooking(matchId);
-                }, 2500);
             }
 
             confirmBooking(matchId) {
@@ -322,28 +326,107 @@
                     m.registeredUsers.push(u.id);
                     m.currentPlayers += 1;
                     if(!m.welcomeMessages) m.welcomeMessages = {};
-                    m.welcomeMessages[u.id] = `👋 Salut ${u.firstName} ! Paiement validé. Ta place pour "${m.title}" est confirmée.`;
-                    alert("Paiement réussi ! Votre place est confirmée.");
+                    m.welcomeMessages[u.id] = `👋 Salut ${u.firstName} ! Paiement mobile validé. Votre place pour "${m.title}" est confirmée.`;
+                    this.saveToStorage();
+                    alert("Paiement validé avec succès ! Votre place est confirmée.");
                     this.navigateTo('match-detail', { matchId });
                 }
+            }
+
+            renderAuthModal(mode) {
+                // ... inchangé ...
+            }
+
+            // --- AUTHENTIFICATION & GESTION ---
+            openAuthModal(mode) {
+                const modal = document.getElementById('system-modal');
+                const content = document.getElementById('modal-content');
+                modal.classList.remove('hidden');
+
+                if (mode === 'login') {
+                    content.innerHTML = `
+                        <h3 class="text-xl font-black text-white mb-4">Connexion à GOALUP</h3>
+                        <form onsubmit="app.handleLogin(event)" class="space-y-3 text-xs">
+                            <input type="email" id="auth-email" placeholder="Votre email" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white">
+                            <input type="password" id="auth-pwd" placeholder="Votre mot de passe" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white">
+                            <button type="submit" class="w-full bg-goalred text-white font-bold py-3.5 rounded-xl text-sm shadow-lg mt-2">Se connecter</button>
+                        </form>
+                    `;
+                } else {
+                    content.innerHTML = `
+                        <h3 class="text-xl font-black text-white mb-4">Créer un compte GOALUP</h3>
+                        <form onsubmit="app.handleRegister(event)" class="space-y-3 text-xs">
+                            <div class="grid grid-cols-2 gap-2">
+                                <input type="text" id="reg-fn" placeholder="Prénom" required class="bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white">
+                                <input type="text" id="reg-ln" placeholder="Nom" required class="bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white">
+                            </div>
+                            <input type="email" id="reg-email" placeholder="Email" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white">
+                            <input type="tel" id="reg-phone" placeholder="Téléphone (+221 77...)" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white">
+                            <input type="password" id="reg-pwd" placeholder="Créer un mot de passe" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white">
+                            <button type="submit" class="w-full bg-goalred text-white font-bold py-3.5 rounded-xl text-sm shadow-lg mt-2">S'inscrire</button>
+                        </form>
+                    `;
+                }
+            }
+
+            handleLogin(e) {
+                e.preventDefault();
+                const email = document.getElementById('auth-email').value.trim().toLowerCase();
+                const pwd = document.getElementById('auth-pwd').value;
+                const dbUser = this.state.usersDatabase[email];
+
+                if (!dbUser || dbUser.password !== pwd) {
+                    alert("Erreur : E-mail inconnu ou mot de passe incorrect.");
+                    return;
+                }
+
+                this.state.user = { ...dbUser, isAuthenticated: true };
+                this.saveToStorage();
+                this.closeModal();
+                alert(dbUser.isAdmin ? "Connexion Fondateur réussie !" : "Connexion réussie !");
+                this.navigateTo('matches');
+            }
+
+            handleRegister(e) {
+                e.preventDefault();
+                const fn = document.getElementById('reg-fn').value.trim();
+                const ln = document.getElementById('reg-ln').value.trim();
+                const email = document.getElementById('reg-email').value.trim().toLowerCase();
+                const phone = document.getElementById('reg-phone').value.trim();
+                const pwd = document.getElementById('reg-pwd').value;
+
+                if (this.state.usersDatabase[email]) {
+                    alert("Cet e-mail est déjà utilisé.");
+                    return;
+                }
+
+                const newUser = {
+                    id: "usr_" + Date.now(), firstName: fn, lastName: ln, email: email, phone: phone, password: pwd, credits: 5000,
+                    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80", isAdmin: false
+                };
+
+                this.state.usersDatabase[email] = newUser;
+                this.state.user = { ...newUser, isAuthenticated: true };
+                this.saveToStorage();
+                this.closeModal();
+                alert("Compte créé avec succès !");
+                this.navigateTo('matches');
             }
 
             renderGameChatView(matchId) {
                 const m = this.state.matches.find(item => item.id === matchId);
                 return `
                     <div class="max-w-2xl mx-auto space-y-4">
-                        <button onclick="app.navigateTo('match-detail', { matchId: '${m.id}' })" class="text-xs text-zinc-400 hover:text-white"><i class="fa-solid fa-arrow-left"></i> Retour au match</button>
+                        <button onclick="app.navigateTo('match-detail', { matchId: '${m.id}' })" class="text-xs text-zinc-400 hover:text-white"><i class="fa-solid fa-arrow-left"></i> Retour</button>
                         <div class="bg-goalCard border border-goalBorder rounded-3xl p-6 shadow-2xl space-y-4">
                             <h2 class="font-black text-white text-base">Chat Live - ${m.title}</h2>
                             <div class="bg-[#18181d] border border-goalBorder rounded-2xl p-4 space-y-3 h-80 overflow-y-auto">
                                 ${m.messages.length ? m.messages.map(msg => `<div class="text-xs"><strong class="text-white">${msg.userName}:</strong> <span class="text-zinc-300">${msg.text}</span></div>`).join('') : '<p class="text-xs text-zinc-500 text-center py-16">Aucun message.</p>'}
                             </div>
-                            ${this.state.user.isAuthenticated ? `
-                                <form onsubmit="app.sendMessage(event, '${m.id}')" class="flex gap-2">
-                                    <input type="text" id="chat-txt" placeholder="Écrire un message..." required class="flex-grow bg-[#18181d] border border-goalBorder rounded-xl p-3 text-xs text-white">
-                                    <button type="submit" class="bg-goalred text-white font-bold px-5 py-3 rounded-xl text-xs">Envoyer</button>
-                                </form>
-                            ` : `<p class="text-xs text-zinc-500 text-center">Connecte-toi pour participer au chat.</p>`}
+                            <form onsubmit="app.sendMessage(event, '${m.id}')" class="flex gap-2">
+                                <input type="text" id="chat-txt" placeholder="Écrire un message..." required class="flex-grow bg-[#18181d] border border-goalBorder rounded-xl p-3 text-xs text-white">
+                                <button type="submit" class="bg-goalred text-white font-bold px-5 py-3 rounded-xl text-xs">Envoyer</button>
+                            </form>
                         </div>
                     </div>
                 `;
@@ -353,11 +436,10 @@
                 e.preventDefault();
                 const txt = document.getElementById('chat-txt').value;
                 const m = this.state.matches.find(item => item.id === matchId);
-                if(m && txt) {
-                    m.messages.push({ userName: this.state.user.firstName, text: txt, time: "Maintenant" });
-                    document.getElementById('chat-txt').value = "";
-                    this.navigateTo('game-chat', { matchId });
-                }
+                m.messages.push({ userName: this.state.user.firstName, text: txt, time: "Maintenant" });
+                document.getElementById('chat-txt').value = "";
+                this.saveToStorage();
+                this.navigateTo('game-chat', { matchId });
             }
 
             renderMessagesView() {
@@ -387,19 +469,16 @@
                             <h1 class="text-2xl font-black text-white">Mon Profil</h1>
                             <button onclick="app.logout()" class="text-xs font-bold text-red-400 bg-red-500/10 px-4 py-2 rounded-xl">Se déconnecter</button>
                         </div>
-
                         <div class="flex items-center gap-5 pb-6 border-b border-goalBorder">
                             <img src="${u.avatar}" class="w-20 h-20 rounded-full object-cover border-2 border-goalred">
                             <div class="space-y-2">
                                 <h3 class="text-lg font-bold text-white">${u.firstName} ${u.lastName}</h3>
-                                <button onclick="app.openChangeAvatarModal()" class="bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl">Changer la photo</button>
+                                <button onclick="app.openChangeAvatarModal()" class="bg-zinc-800 text-white font-bold text-xs px-3.5 py-2 rounded-xl">Changer la photo</button>
                             </div>
                         </div>
-
                         <div class="space-y-3 text-xs">
                             <p class="text-zinc-300"><strong>Email :</strong> ${u.email}</p>
                             <p class="text-zinc-300"><strong>Téléphone :</strong> ${u.phone}</p>
-                            <p class="text-zinc-300"><strong>Statut :</strong> ${u.isAdmin ? 'Fondateur / Administrateur (Accès total)' : 'Membre'}</p>
                         </div>
                     </div>
                 `;
@@ -409,14 +488,10 @@
                 const modal = document.getElementById('system-modal');
                 const content = document.getElementById('modal-content');
                 modal.classList.remove('hidden');
-
                 content.innerHTML = `
                     <h3 class="text-xl font-black text-white mb-4">Changer la photo de profil</h3>
                     <form onsubmit="app.saveAvatar(event)" class="space-y-4 text-xs">
-                        <div>
-                            <label class="block text-zinc-400 mb-1">Lien internet de l'image (URL)</label>
-                            <input type="url" id="new-avatar-url" placeholder="https://images.unsplash.com/..." required value="${this.state.user.avatar}" class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white">
-                        </div>
+                        <input type="url" id="new-avatar-url" required value="${this.state.user.avatar}" class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white">
                         <button type="submit" class="w-full bg-goalred text-white font-bold py-3.5 rounded-xl shadow-lg">Enregistrer</button>
                     </form>
                 `;
@@ -424,72 +499,42 @@
 
             saveAvatar(e) {
                 e.preventDefault();
-                const newUrl = document.getElementById('new-avatar-url').value;
-                this.state.user.avatar = newUrl;
+                this.state.user.avatar = document.getElementById('new-avatar-url').value;
+                this.saveToStorage();
                 this.closeModal();
-                alert("Photo de profil mise à jour !");
                 this.navigateTo('profile');
             }
+
+            logout() {
+                this.state.user = { id: null, isAuthenticated: false, isAdmin: false };
+                this.saveToStorage();
+                this.navigateTo('matches');
+            }
+
+            closeModal() { document.getElementById('system-modal').classList.add('hidden'); }
 
             renderAdminDashboardView() {
                 return `
                     <div class="space-y-8">
-                        <div>
-                            <span class="text-xs text-goalred font-bold uppercase tracking-wider"><i class="fa-solid fa-shield-halved"></i> Espace Fondateur • Contrôle Total</span>
-                            <h1 class="text-3xl font-black text-white mt-1">Dashboard Admin Web</h1>
-                        </div>
-
+                        <div><span class="text-xs text-goalred font-bold uppercase">Espace Fondateur</span><h1 class="text-3xl font-black text-white mt-1">Dashboard Admin</h1></div>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                            <div onclick="app.navigateTo('admin-matches')" class="bg-goalCard border border-goalBorder hover:border-goalred rounded-3xl p-6 cursor-pointer transition group shadow-xl">
-                                <div class="w-12 h-12 rounded-2xl bg-goalred/10 flex items-center justify-center text-goalred text-xl mb-4 group-hover:scale-110 transition"><i class="fa-solid fa-futbol"></i></div>
-                                <h3 class="text-xl font-bold text-white mb-2">Section Matchs</h3>
-                                <p class="text-xs text-zinc-400 leading-relaxed">Créer, modifier, filtrer par date et annuler des sessions de match à Dakar.</p>
-                            </div>
-                            <div onclick="app.navigateTo('admin-players')" class="bg-goalCard border border-goalBorder hover:border-goalred rounded-3xl p-6 cursor-pointer transition group shadow-xl">
-                                <div class="w-12 h-12 rounded-2xl bg-goalred/10 flex items-center justify-center text-goalred text-xl mb-4 group-hover:scale-110 transition"><i class="fa-solid fa-users"></i></div>
-                                <h3 class="text-xl font-bold text-white mb-2">Section Joueurs</h3>
-                                <p class="text-xs text-zinc-400 leading-relaxed">Modifier les profils des utilisateurs, ajuster leurs crédits ou les bannir définitivement.</p>
-                            </div>
+                            <div onclick="app.navigateTo('admin-matches')" class="bg-goalCard border border-goalBorder rounded-3xl p-6 cursor-pointer"><h3 class="text-xl font-bold text-white mb-2">Section Matchs</h3></div>
+                            <div onclick="app.navigateTo('admin-players')" class="bg-goalCard border border-goalBorder rounded-3xl p-6 cursor-pointer"><h3 class="text-xl font-bold text-white mb-2">Section Joueurs</h3></div>
                         </div>
                     </div>
                 `;
             }
 
             renderAdminMatchesView() {
-                const selectedDate = this.state.params.filterDate || "";
-                const filtered = selectedDate ? this.state.matches.filter(m => m.dateRaw === selectedDate) : this.state.matches;
-
                 return `
                     <div class="space-y-6">
-                        <div class="flex items-center justify-between pb-4 border-b border-goalBorder">
-                            <button onclick="app.navigateTo('admin-dashboard')" class="text-xs font-semibold text-zinc-400 hover:text-white"><i class="fa-solid fa-arrow-left"></i> Retour Dashboard</button>
-                            <button onclick="app.openCreateMatchModal()" class="bg-goalred hover:bg-red-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs shadow-lg"><i class="fa-solid fa-plus"></i> Nouveau match</button>
-                        </div>
-
-                        <div class="bg-goalCard border border-goalBorder rounded-2xl p-4 flex items-center justify-between gap-4">
-                            <div class="flex items-center gap-3">
-                                <label class="text-xs text-zinc-400 font-bold"><i class="fa-solid fa-filter text-goalred mr-1"></i> Filtrer par date :</label>
-                                <input type="date" value="${selectedDate}" onchange="app.filterMatches(this.value)" class="bg-[#18181d] border border-goalBorder rounded-xl p-2.5 text-xs text-white">
-                            </div>
-                            ${selectedDate ? `<button onclick="app.navigateTo('admin-matches')" class="text-xs text-goalred font-semibold">Réinitialiser</button>` : ''}
-                        </div>
-
+                        <button onclick="app.navigateTo('admin-dashboard')" class="text-xs text-zinc-400"><i class="fa-solid fa-arrow-left"></i> Retour</button>
+                        <h2 class="text-xl font-black text-white">Gestion des Matchs</h2>
                         <div class="space-y-3">
-                            ${filtered.map(m => `
+                            ${this.state.matches.map(m => `
                                 <div class="bg-goalCard border border-goalBorder rounded-2xl p-5 flex justify-between items-center">
-                                    <div>
-                                        <div class="flex items-center gap-2 mb-1">
-                                            <span class="text-xs font-bold text-goalred">${m.format}</span>
-                                            <span class="text-xs text-zinc-400">${m.dateFull} (${m.time})</span>
-                                            <span class="text-[10px] px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 font-semibold">${m.status}</span>
-                                        </div>
-                                        <h4 class="font-bold text-white text-sm">${m.title} —${m.location}</h4>
-                                        <span class="text-xs text-zinc-400">Inscrits : <strong>${m.currentPlayers} /${m.maxPlayers}</strong></span>
-                                    </div>
-                                    <div class="flex items-center gap-2">
-                                        <button onclick="app.navigateTo('admin-match-edit', { matchId: '${m.id}' })" class="bg-goalred text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-md"><i class="fa-solid fa-pen"></i> Éditer</button>
-                                        <button onclick="app.deleteMatch('${m.id}')" class="bg-red-500/10 text-red-400 text-xs font-bold px-3 py-2.5 rounded-xl"><i class="fa-solid fa-trash"></i></button>
-                                    </div>
+                                    <h4 class="font-bold text-white text-sm">${m.title}</h4>
+                                    <button onclick="app.deleteMatch('${m.id}')" class="bg-red-500/10 text-red-400 text-xs font-bold px-3 py-2 rounded-xl">Supprimer</button>
                                 </div>
                             `).join('')}
                         </div>
@@ -497,146 +542,23 @@
                 `;
             }
 
-            filterMatches(val) { this.navigateTo('admin-matches', { filterDate: val }); }
-
-            renderAdminMatchEditView(matchId) {
-                const m = this.state.matches.find(item => item.id === matchId);
-                if(!m) return `<div class="p-12 text-center text-zinc-400">Match introuvable.</div>`;
-
-                return `
-                    <div class="space-y-6 max-w-2xl mx-auto">
-                        <button onclick="app.navigateTo('admin-matches')" class="text-xs text-zinc-400"><i class="fa-solid fa-arrow-left"></i> Retour aux matchs</button>
-                        <div class="bg-goalCard border border-goalBorder rounded-3xl p-6 sm:p-8 shadow-2xl">
-                            <h2 class="text-xl font-black text-white mb-6">Éditer le match</h2>
-                            <form onsubmit="app.saveMatchEdits(event, '${m.id}')" class="space-y-4 text-xs">
-                                <div><label class="block text-zinc-400 mb-1">Titre</label><input type="text" id="ed-title" value="${m.title}" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
-                                <div class="grid grid-cols-2 gap-3">
-                                    <div><label class="block text-zinc-400 mb-1">Date (YYYY-MM-DD)</label><input type="date" id="ed-dateraw" value="${m.dateRaw}" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
-                                    <div><label class="block text-zinc-400 mb-1">Heure</label><input type="text" id="ed-time" value="${m.time}" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
-                                </div>
-                                <div class="grid grid-cols-2 gap-3">
-                                    <div><label class="block text-zinc-400 mb-1">Prix (FCFA)</label><input type="number" id="ed-price" value="${m.price}" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
-                                    <div><label class="block text-zinc-400 mb-1">Statut</label>
-                                        <select id="ed-status" class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white">
-                                            <option value="Ouvert" ${m.status==='Ouvert'?'selected':''}>Ouvert</option>
-                                            <option value="Annulé" ${m.status==='Annulé'?'selected':''}>Annulé</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div><label class="block text-zinc-400 mb-1">Lieu</label><input type="text" id="ed-loc" value="${m.location}" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
-                                <button type="submit" class="w-full bg-goalred text-white font-bold py-3.5 rounded-xl shadow-lg mt-2">Enregistrer</button>
-                            </form>
-                        </div>
-                    </div>
-                `;
-            }
-
-            saveMatchEdits(e, matchId) {
-                e.preventDefault();
-                const m = this.state.matches.find(item => item.id === matchId);
-                if(m) {
-                    m.title = document.getElementById('ed-title').value;
-                    m.dateRaw = document.getElementById('ed-dateraw').value;
-                    m.time = document.getElementById('ed-time').value;
-                    m.price = parseInt(document.getElementById('ed-price').value);
-                    m.status = document.getElementById('ed-status').value;
-                    m.location = document.getElementById('ed-loc').value;
-                    alert("Match mis à jour avec succès !");
-                    this.navigateTo('admin-matches');
-                }
-            }
-
             deleteMatch(matchId) {
-                if(confirm("Supprimer ce match ?")) {
-                    this.state.matches = this.state.matches.filter(m => m.id !== matchId);
-                    this.navigateTo('admin-matches');
-                }
-            }
-
-            openCreateMatchModal() {
-                const modal = document.getElementById('system-modal');
-                const content = document.getElementById('modal-content');
-                modal.classList.remove('hidden');
-
-                content.innerHTML = `
-                    <h3 class="text-xl font-black text-white mb-4">Créer un nouveau match</h3>
-                    <form onsubmit="app.createMatchSubmit(event)" class="space-y-3 text-xs">
-                        <div><label class="block text-zinc-400 mb-1">Titre</label><input type="text" id="cr-title" required placeholder="GOALUP NIGHT" class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
-                        <div class="grid grid-cols-2 gap-2">
-                            <div><label class="block text-zinc-400 mb-1">Date</label><input type="date" id="cr-date" required value="2026-10-15" class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
-                            <div><label class="block text-zinc-400 mb-1">Heure</label><input type="text" id="cr-time" required value="21:00" class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
-                        </div>
-                        <div><label class="block text-zinc-400 mb-1">Lieu</label><input type="text" id="cr-loc" required placeholder="Terrain Almadies" class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
-                        <div class="grid grid-cols-2 gap-2">
-                            <div><label class="block text-zinc-400 mb-1">Max Joueurs</label><input type="number" id="cr-max" required value="16" class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
-                            <div><label class="block text-zinc-400 mb-1">Prix (FCFA)</label><input type="number" id="cr-price" required value="3000" class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
-                        </div>
-                        <button type="submit" class="w-full bg-goalred text-white font-bold py-3.5 rounded-xl shadow-lg mt-2">Publier le match</button>
-                    </form>
-                `;
-            }
-
-            createMatchSubmit(e) {
-                e.preventDefault();
-                const newM = {
-                    id: "m_" + Date.now(),
-                    title: document.getElementById('cr-title').value,
-                    dateRaw: document.getElementById('cr-date').value,
-                    dateFull: "Match Dakar",
-                    time: document.getElementById('cr-time').value,
-                    duration: "1h30",
-                    location: document.getElementById('cr-loc').value,
-                    address: "Dakar",
-                    format: "7v7",
-                    level: "Tous niveaux",
-                    maxPlayers: parseInt(document.getElementById('cr-max').value),
-                    minPlayers: 10,
-                    currentPlayers: 0,
-                    price: parseInt(document.getElementById('cr-price').value),
-                    status: "Ouvert",
-                    description: "Match officiel.",
-                    registeredUsers: [],
-                    messages: [],
-                    welcomeMessages: {}
-                };
-                this.state.matches.push(newM);
-                this.closeModal();
-                alert("Match créé avec succès !");
+                this.state.matches = this.state.matches.filter(m => m.id !== matchId);
+                this.saveToStorage();
                 this.navigateTo('admin-matches');
             }
 
             renderAdminPlayersView() {
-                const search = (this.state.params.searchEmail || "").toLowerCase();
-                const players = Object.values(this.state.playersDirectory);
-                const filtered = search ? players.filter(p => p.email.toLowerCase().includes(search)) : players;
-
+                const players = Object.values(this.state.usersDatabase).filter(u => !u.isAdmin);
                 return `
                     <div class="space-y-6">
-                        <div class="flex items-center justify-between pb-4 border-b border-goalBorder">
-                            <button onclick="app.navigateTo('admin-dashboard')" class="text-xs font-semibold text-zinc-400 hover:text-white"><i class="fa-solid fa-arrow-left"></i> Retour Dashboard</button>
-                            <h2 class="text-xl font-black text-white">Gestion des Joueurs</h2>
-                        </div>
-
-                        <div class="bg-goalCard border border-goalBorder rounded-2xl p-4 flex items-center gap-3">
-                            <i class="fa-solid fa-magnifying-glass text-zinc-400"></i>
-                            <input type="text" placeholder="Rechercher par email..." value="${search}" oninput="app.searchPlayer(this.value)" class="w-full bg-transparent text-xs text-white outline-none">
-                        </div>
-
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            ${filtered.map(p => `
+                        <button onclick="app.navigateTo('admin-dashboard')" class="text-xs text-zinc-400"><i class="fa-solid fa-arrow-left"></i> Retour</button>
+                        <h2 class="text-xl font-black text-white">Gestion des Joueurs</h2>
+                        <div class="space-y-3">
+                            ${players.map(p => `
                                 <div class="bg-goalCard border border-goalBorder rounded-2xl p-5 flex items-center justify-between">
-                                    <div class="flex items-center gap-4">
-                                        <img src="${p.avatar}" class="w-12 h-12 rounded-full object-cover">
-                                        <div>
-                                            <h4 class="font-bold text-white text-sm">${p.firstName}${p.lastName}</h4>
-                                            <span class="text-xs text-zinc-400 block">${p.email}</span>
-                                            <span class="text-[10px] text-goalred font-bold">Crédits : ${p.credits.toLocaleString()} F</span>
-                                        </div>
-                                    </div>
-                                    <div class="flex gap-2">
-                                        <button onclick="app.navigateTo('admin-player-edit', { playerId: '${p.id}' })" class="bg-goalred text-white text-xs font-bold px-3 py-2 rounded-xl"><i class="fa-solid fa-pen"></i></button>
-                                        <button onclick="app.banPlayer('${p.id}')" class="bg-red-500/10 text-red-400 text-xs font-bold px-3 py-2 rounded-xl"><i class="fa-solid fa-ban"></i></button>
-                                    </div>
+                                    <div><h4 class="font-bold text-white text-sm">${p.firstName}${p.lastName}</h4><span class="text-xs text-zinc-400">${p.email}</span></div>
+                                    <button onclick="app.banPlayer('${p.email}')" class="bg-red-500/10 text-red-400 text-xs font-bold px-3 py-2 rounded-xl">Bannir</button>
                                 </div>
                             `).join('')}
                         </div>
@@ -644,106 +566,15 @@
                 `;
             }
 
-            searchPlayer(val) { this.navigateTo('admin-players', { searchEmail: val }); }
-
-            renderAdminPlayerEditView(playerId) {
-                const p = this.state.playersDirectory[playerId];
-                if(!p) return `<div class="p-12 text-center text-zinc-400">Joueur introuvable.</div>`;
-
-                return `
-                    <div class="space-y-6 max-w-xl mx-auto">
-                        <button onclick="app.navigateTo('admin-players')" class="text-xs text-zinc-400"><i class="fa-solid fa-arrow-left"></i> Retour aux joueurs</button>
-                        <div class="bg-goalCard border border-goalBorder rounded-3xl p-6 sm:p-8 shadow-2xl">
-                            <h2 class="text-xl font-black text-white mb-6">Modifier le profil de ${p.firstName}</h2>
-                            <form onsubmit="app.savePlayerEdits(event, '${p.id}')" class="space-y-4 text-xs">
-                                <div class="grid grid-cols-2 gap-3">
-                                    <div><label class="block text-zinc-400 mb-1">Prénom</label><input type="text" id="pl-fn" value="${p.firstName}" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
-                                    <div><label class="block text-zinc-400 mb-1">Nom</label><input type="text" id="pl-ln" value="${p.lastName}" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
-                                </div>
-                                <div><label class="block text-zinc-400 mb-1">Email</label><input type="email" id="pl-email" value="${p.email}" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
-                                <div><label class="block text-zinc-400 mb-1">Crédits (FCFA)</label><input type="number" id="pl-credits" value="${p.credits}" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white"></div>
-                                <button type="submit" class="w-full bg-goalred text-white font-bold py-3.5 rounded-xl shadow-lg mt-2">Enregistrer les modifications</button>
-                            </form>
-                        </div>
-                    </div>
-                `;
-            }
-
-            savePlayerEdits(e, playerId) {
-                e.preventDefault();
-                const p = this.state.playersDirectory[playerId];
-                if(p) {
-                    p.firstName = document.getElementById('pl-fn').value;
-                    p.lastName = document.getElementById('pl-ln').value;
-                    p.email = document.getElementById('pl-email').value;
-                    p.credits = parseInt(document.getElementById('pl-credits').value);
-                    alert("Profil du joueur mis à jour avec succès !");
-                    this.navigateTo('admin-players');
-                }
-            }
-
-            banPlayer(playerId) {
-                if(confirm("Voulez-vous vraiment bannir et supprimer cet utilisateur de la plateforme ?")) {
-                    delete this.state.playersDirectory[playerId];
-                    alert("Utilisateur banni.");
-                    this.navigateTo('admin-players');
-                }
+            banPlayer(email) {
+                delete this.state.usersDatabase[email];
+                this.saveToStorage();
+                this.navigateTo('admin-players');
             }
 
             renderLoginPrompt() {
                 return `<div class="text-center py-16 bg-goalCard border border-goalBorder rounded-3xl p-8"><h2 class="text-xl font-black text-white mb-3">Connexion Requise</h2><button onclick="app.openAuthModal('login')" class="bg-goalred text-white font-bold px-6 py-3 rounded-xl text-xs">Se connecter</button></div>`;
             }
-
-            openAuthModal(mode) {
-                const modal = document.getElementById('system-modal');
-                const content = document.getElementById('modal-content');
-                modal.classList.remove('hidden');
-
-                content.innerHTML = `
-                    <h3 class="text-xl font-black text-white mb-4">Connexion</h3>
-                    <form onsubmit="app.handleAuth(event)" class="space-y-3 text-xs">
-                        <input type="email" id="auth-email" placeholder="Votre email" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white">
-                        <input type="password" id="auth-pwd" placeholder="Votre mot de passe" required class="w-full bg-[#18181d] border border-goalBorder rounded-xl p-3 text-white">
-                        <button type="submit" class="w-full bg-goalred text-white font-bold py-3.5 rounded-xl text-sm shadow-lg mt-2">Valider</button>
-                    </form>
-                `;
-            }
-
-            handleAuth(e) {
-                e.preventDefault();
-                const email = document.getElementById('auth-email').value.trim().toLowerCase();
-                const pwd = document.getElementById('auth-pwd').value;
-
-                const isAdmin = (email === "omar.goalup@gmail.com" && pwd === "47749669");
-
-                if(email === "omar.goalup@gmail.com" && pwd !== "47749669") {
-                    alert("Mot de passe administrateur incorrect.");
-                    return;
-                }
-
-                this.state.user = {
-                    id: "usr_" + Date.now(),
-                    firstName: isAdmin ? "Omar" : "Membre",
-                    lastName: "GoalUp",
-                    email: email,
-                    phone: "+221 77 823 44 55",
-                    credits: isAdmin ? 999999 : 10000,
-                    avatar: isAdmin ? "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80" : "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
-                    isAdmin: isAdmin,
-                    isAuthenticated: true
-                };
-
-                this.closeModal();
-                alert(isAdmin ? "Bienvenue Fondateur !" : "Connexion réussie !");
-                this.navigateTo('matches');
-            }
-
-            logout() {
-                this.state.user = { id: null, isAuthenticated: false, isAdmin: false };
-                this.navigateTo('matches');
-            }
-
-            closeModal() { document.getElementById('system-modal').classList.add('hidden'); }
         }
 
         const app = new GoalUpApp();
